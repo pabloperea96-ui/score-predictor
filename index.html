@@ -335,6 +335,20 @@
     .mast-actions{display:none}
     .hero-letter{font-size:32px}
   }
+
+  /* Auth modal */
+  .auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+  .auth-overlay.hidden{display:none}
+  .auth-card{background:rgba(18,28,46,0.94);border:1px solid rgba(255,255,255,0.16);border-radius:20px;padding:32px;max-width:360px;width:calc(100% - 48px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.18),0 24px 64px rgba(0,0,0,0.7)}
+  .auth-card h3{margin:0 0 8px;font-size:20px;font-weight:600;color:var(--txt);font-family:var(--sans)}
+  .auth-card p{margin:0 0 24px;font-size:14px;color:var(--muted);line-height:1.6;font-family:var(--sans)}
+  .auth-input{width:100%;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.14);border-radius:10px;color:var(--txt);font-family:var(--sans);font-size:15px;padding:12px 16px;box-sizing:border-box;margin-bottom:12px}
+  .auth-input:focus{outline:none;border-color:var(--accent)}
+  .auth-btn{width:100%;margin-bottom:8px;border-radius:10px}
+  .auth-link{font-size:13px;color:var(--muted);text-align:center;cursor:pointer;padding:4px;display:block;font-family:var(--sans)}
+  .auth-link:hover{color:var(--txt)}
+  #syncDot{font-size:10px;line-height:1;transition:color .3s;flex-shrink:0}
+  #authUser{font-size:12px;color:var(--muted);font-family:var(--mono);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -347,6 +361,9 @@
     </div>
     <div class="mast-spacer"></div>
     <div class="mast-actions">
+      <span id="syncDot"></span>
+      <span id="authUser"></span>
+      <button class="btn ghost sm" id="btnAuth">Iniciar sesión</button>
       <button class="btn ghost sm" id="btnExport">Exportar JSON</button>
       <button class="btn ghost sm" id="btnImport">Importar JSON</button>
       <input type="file" id="fileImport" accept="application/json" class="hidden">
@@ -364,12 +381,30 @@
 </div>
 
 <footer class="foot">
-  <div>Modelo Poisson · Ranking FIFA 11/06/2026 · Datos guardados en este navegador — <b>Exportá JSON</b> para no perder tu registro.</div>
+  <div>Modelo Poisson · Ranking FIFA 11/06/2026 · <b>Iniciá sesión</b> para sincronizar entre dispositivos — los datos también se guardan localmente en este navegador.</div>
 </footer>
+
+<div class="auth-overlay hidden" id="authModal">
+  <div class="auth-card">
+    <h3>Sincronizar dispositivos</h3>
+    <p>Ingresá tu email y te enviamos un enlace para iniciar sesión en cualquier dispositivo.</p>
+    <input class="auth-input" type="email" id="authEmail" placeholder="tu@email.com" autocomplete="email">
+    <button class="btn auth-btn" id="authSend">Enviar enlace mágico</button>
+    <span class="auth-link" id="authClose">Cancelar</span>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
+/* ----------------------------------------------------------------
+   SUPABASE
+-----------------------------------------------------------------*/
+const SUPA_URL="https://suflqddswzsxuioutczm.supabase.co";
+const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1ZmxxZGRzd3pzeHVpb3V0Y3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNjQ3OTAsImV4cCI6MjA5Njk0MDc5MH0.axm3yZL04kQ3o2UcG0DnjGIUKbrEgFKanNMGVqmffxA";
+const supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+
 /* ----------------------------------------------------------------
    DATOS BASE
 -----------------------------------------------------------------*/
@@ -976,15 +1011,77 @@ const Store={
     return null;
   },
   async set(k,v){
-    let ok=false;
-    try{ localStorage.setItem(k,v); ok=true; }catch(e){}
-    try{ if(!ok&&window.storage&&window.storage.set){ await window.storage.set(k,v); } }catch(e){}
+    try{ localStorage.setItem(k,v); }catch(e){}
+    try{ if(window.storage&&window.storage.set){ await window.storage.set(k,v); } }catch(e){}
+  },
+  async pushCloud(state){
+    try{
+      const {data:{user}}=await supa.auth.getUser();
+      if(!user) return;
+      await supa.from('states').upsert({user_id:user.id,data:state,updated_at:new Date().toISOString()});
+      setSyncDot('ok');
+    }catch(e){ setSyncDot('err'); }
+  },
+  async pullCloud(){
+    try{
+      const {data:{user}}=await supa.auth.getUser();
+      if(!user) return null;
+      const {data}=await supa.from('states').select('data').eq('user_id',user.id).single();
+      return data?.data||null;
+    }catch(e){ return null; }
   }
 };
-let saveTimer=null;
+
+function setSyncDot(s){
+  const el=document.getElementById('syncDot');
+  if(!el) return;
+  if(s==='ok'){ el.textContent='●'; el.style.color='var(--win)'; el.title='Sincronizado'; }
+  else if(s==='syncing'){ el.textContent='○'; el.style.color='var(--draw)'; el.title='Sincronizando…'; }
+  else if(s==='err'){ el.textContent='●'; el.style.color='var(--bad)'; el.title='Error al sincronizar'; }
+  else { el.textContent=''; el.title=''; }
+}
+
+function updateAuthUI(user){
+  const userEl=document.getElementById('authUser');
+  const btn=document.getElementById('btnAuth');
+  if(!userEl||!btn) return;
+  if(user){
+    userEl.textContent=user.email;
+    btn.textContent='Cerrar sesión';
+    btn.onclick=async()=>{ await supa.auth.signOut(); updateAuthUI(null); setSyncDot(''); toast('Sesión cerrada'); };
+  } else {
+    userEl.textContent='';
+    btn.textContent='Iniciar sesión';
+    btn.onclick=()=>document.getElementById('authModal').classList.remove('hidden');
+    setSyncDot('');
+  }
+}
+
+async function sendMagicLink(){
+  const email=document.getElementById('authEmail').value.trim();
+  if(!email) return;
+  const sendBtn=document.getElementById('authSend');
+  sendBtn.textContent='Enviando…'; sendBtn.disabled=true;
+  const {error}=await supa.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.href}});
+  sendBtn.disabled=false; sendBtn.textContent='Enviar enlace mágico';
+  if(error){ toast('Error: '+error.message); }
+  else { toast('Enlace enviado — revisá tu email'); document.getElementById('authModal').classList.add('hidden'); }
+}
+
+function applyCloudState(cloud){
+  STATE.rating={...cloud.rating}; STATE.adj={...cloud.adj};
+  STATE.matches=cloud.matches||{}; STATE.settings={...DEFAULTS,...(cloud.settings||{})};
+  STATE.collapsed=cloud.collapsed||{};
+  Store.set("wc26",JSON.stringify(STATE));
+  seedState(); renderGroups(); refreshDashIfOpen(); refreshLlavesIfOpen();
+}
+
+let saveTimer=null, cloudTimer=null;
 function save(){
   clearTimeout(saveTimer);
-  saveTimer=setTimeout(()=>{ Store.set("wc26",JSON.stringify(STATE)); },300);
+  saveTimer=setTimeout(()=>Store.set("wc26",JSON.stringify(STATE)),300);
+  clearTimeout(cloudTimer);
+  cloudTimer=setTimeout(()=>{ setSyncDot('syncing'); Store.pushCloud(STATE); },1500);
 }
 async function load(){
   try{
@@ -1024,6 +1121,7 @@ function toast(msg){
    ARRANQUE
 -----------------------------------------------------------------*/
 async function boot(){
+  // 1. Carga local → render inmediato
   await load();
   seedState();
   buildTabs();
@@ -1031,6 +1129,35 @@ async function boot(){
   document.getElementById("btnExport").addEventListener('click',exportJSON);
   document.getElementById("btnImport").addEventListener('click',()=>document.getElementById("fileImport").click());
   document.getElementById("fileImport").addEventListener('change',e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); e.target.value=""; });
+  document.getElementById("authSend").addEventListener('click',sendMagicLink);
+  document.getElementById("authClose").addEventListener('click',()=>document.getElementById('authModal').classList.add('hidden'));
+  document.getElementById("authEmail").addEventListener('keydown',e=>{ if(e.key==='Enter') sendMagicLink(); });
+
+  // 2. Verifica sesión existente
+  const {data:{user}}=await supa.auth.getUser();
+  updateAuthUI(user);
+
+  // 3. Si hay sesión, sincroniza desde la nube en background
+  if(user){
+    setSyncDot('syncing');
+    const cloud=await Store.pullCloud();
+    if(cloud){ applyCloudState(cloud); } else { await Store.pushCloud(STATE); }
+    setSyncDot('ok');
+  }
+
+  // 4. Escucha cambios de auth (magic link redirect y logout)
+  supa.auth.onAuthStateChange(async(event,session)=>{
+    if(event==='SIGNED_IN'){
+      updateAuthUI(session.user);
+      setSyncDot('syncing');
+      const cloud=await Store.pullCloud();
+      if(cloud){ applyCloudState(cloud); } else { await Store.pushCloud(STATE); }
+      setSyncDot('ok');
+      toast('Sesión iniciada — datos sincronizados');
+    }
+    if(event==='SIGNED_OUT'){ updateAuthUI(null); }
+  });
+
   booted=true;
 }
 boot();
