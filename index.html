@@ -332,9 +332,31 @@
     .mteam{padding:16px}
   }
   @media(max-width:374px){
-    .mast-actions{display:none}
     .hero-letter{font-size:32px}
   }
+
+  /* Hero de bienvenida */
+  #hero{padding:32px 16px 8px}
+  .hero-inner{
+    border:1px solid rgba(255,255,255,0.13);border-radius:20px;
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(48px) saturate(1.6);-webkit-backdrop-filter:blur(48px) saturate(1.6);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.20),0 8px 48px rgba(0,0,0,0.55);
+    padding:40px 32px;max-width:1120px;margin:0 auto;
+  }
+  .hero-h1{font-size:40px;font-weight:700;letter-spacing:-1.5px;margin:0 0 16px;line-height:1.1;color:var(--txt)}
+  .hero-sub{font-size:15px;color:var(--muted);line-height:1.7;margin:0 0 32px;max-width:600px}
+  .hero-steps{display:flex;flex-direction:column;gap:12px;margin-bottom:32px}
+  .hero-step{display:flex;align-items:flex-start;gap:16px;font-size:14px;line-height:1.5;color:var(--txt)}
+  .hero-num{
+    font-family:var(--mono);font-size:12px;font-weight:700;
+    background:var(--accent);color:var(--bg);
+    min-width:24px;height:24px;border-radius:9999px;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
+  }
+  .hero-cta{font-size:15px;padding:12px 24px;min-height:48px;margin-bottom:12px}
+  .hero-note{font-size:12px;color:var(--faint);margin:0}
+  @media(max-width:640px){.hero-h1{font-size:28px}.hero-inner{padding:24px 20px}}
 
   /* Auth modal */
   .auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:100;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
@@ -368,14 +390,25 @@
       <span id="syncDot"></span>
       <span id="authUser"></span>
       <button class="btn ghost sm" id="btnAuth">Iniciar sesión</button>
-      <button class="btn ghost sm" id="btnExport">Exportar JSON</button>
-      <button class="btn ghost sm" id="btnImport">Importar JSON</button>
-      <input type="file" id="fileImport" accept="application/json" class="hidden">
     </div>
   </div>
 </header>
 
 <nav class="tabs" id="tabs"></nav>
+
+<section id="hero">
+  <div class="hero-inner">
+    <h1 class="hero-h1">Predecí el Mundial 2026</h1>
+    <p class="hero-sub">Un motor de probabilidades Poisson que calcula las chances reales de cada partido usando el ranking FIFA. Ingresá tus pronósticos, compará con el modelo y seguí tu precisión en tiempo real.</p>
+    <div class="hero-steps">
+      <div class="hero-step"><span class="hero-num">1</span><span>Revisá las probabilidades de cada partido en la pestaña <b>Grupos</b></span></div>
+      <div class="hero-step"><span class="hero-num">2</span><span>Ingresá tus pronósticos de marcador antes de cada partido</span></div>
+      <div class="hero-step"><span class="hero-num">3</span><span>Cargá los resultados reales y seguí tu precisión en <b>Precisión</b></span></div>
+    </div>
+    <button class="btn hero-cta" id="heroCta">Crear cuenta para sincronizar</button>
+    <p class="hero-note">También podés usar la app sin cuenta — los datos se guardan en este navegador.</p>
+  </div>
+</section>
 
 <div class="wrap">
   <section class="view" id="view-groups"></section>
@@ -1059,16 +1092,19 @@ function setSyncDot(s){
 function updateAuthUI(user){
   const userEl=document.getElementById('authUser');
   const btn=document.getElementById('btnAuth');
+  const hero=document.getElementById('hero');
   if(!userEl||!btn) return;
   if(user){
     userEl.textContent=user.email;
     btn.textContent='Cerrar sesión';
     btn.onclick=async()=>{ await supa.auth.signOut(); updateAuthUI(null); setSyncDot(''); toast('Sesión cerrada'); };
+    if(hero) hero.classList.add('hidden');
   } else {
     userEl.textContent='';
     btn.textContent='Iniciar sesión';
     btn.onclick=()=>document.getElementById('authModal').classList.remove('hidden');
     setSyncDot('');
+    if(hero) hero.classList.remove('hidden');
   }
 }
 
@@ -1182,24 +1218,6 @@ async function load(){
     }
   }catch(e){}
 }
-function exportJSON(){
-  const blob=new Blob([JSON.stringify(STATE,null,2)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
-  a.download="mundial26-pronostico.json"; a.click(); URL.revokeObjectURL(a.href);
-  toast("Datos exportados");
-}
-function importJSON(file){
-  const r=new FileReader();
-  r.onload=()=>{ try{
-    const d=JSON.parse(r.result);
-    STATE.rating={...d.rating}; STATE.adj={...d.adj};
-    STATE.matches=d.matches||{}; STATE.settings={...DEFAULTS,...(d.settings||{})};
-    STATE.collapsed={...d.collapsed};
-    seedState(); renderGroups();
-    toast("Datos importados"); save(); refreshDashIfOpen(); refreshLlavesIfOpen();
-  }catch(e){ toast("Archivo inválido"); } };
-  r.readAsText(file);
-}
 let toastTimer=null;
 function toast(msg){
   const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
@@ -1215,9 +1233,7 @@ async function boot(){
   seedState();
   buildTabs();
   renderGroups();
-  document.getElementById("btnExport").addEventListener('click',exportJSON);
-  document.getElementById("btnImport").addEventListener('click',()=>document.getElementById("fileImport").click());
-  document.getElementById("fileImport").addEventListener('change',e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); e.target.value=""; });
+  document.getElementById("heroCta").addEventListener('click',()=>{ setAuthMode('signup'); document.getElementById('authModal').classList.remove('hidden'); });
   document.getElementById("authSend").addEventListener('click',submitAuth);
   document.getElementById("authToggle").addEventListener('click',()=>setAuthMode(authMode==='signup'?'login':authMode==='reset'?'login':'signup'));
   document.getElementById("authForgot").addEventListener('click',()=>setAuthMode('reset'));
