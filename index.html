@@ -520,6 +520,12 @@
       <p>Enviamos un enlace a <strong id="authResetEmail"></strong>.<br>Si no llega en unos minutos, revisa la carpeta de spam.</p>
       <button class="btn auth-btn auth-btn-accent" id="authResetBack">Volver a iniciar sesión</button>
     </div>
+    <div class="auth-success hidden" id="authSignupSent">
+      <div class="auth-success-icon">✉️</div>
+      <h3>Revisa tu email</h3>
+      <p>Enviamos un enlace de confirmación a <strong id="authSignupEmail"></strong>.<br>Haz clic en él para activar tu cuenta e iniciar sesión automáticamente.</p>
+      <button class="btn auth-btn auth-btn-accent" id="authSignupBack">Volver a iniciar sesión</button>
+    </div>
   </div>
 </div>
 
@@ -1372,6 +1378,7 @@ function setAuthMode(mode){
   const title=document.getElementById('authTitle');
   const desc=document.getElementById('authDesc');
   const resetSent=document.getElementById('authResetSent');
+  const signupSent=document.getElementById('authSignupSent');
 
   // Reset todo a estado base
   emailWrap.classList.remove('hidden');
@@ -1384,6 +1391,7 @@ function setAuthMode(mode){
   title.classList.remove('hidden');
   desc.classList.remove('hidden');
   resetSent.classList.add('hidden');
+  signupSent.classList.add('hidden');
   document.getElementById('authPass').placeholder='Contraseña';
 
   if(mode==='login'){
@@ -1420,6 +1428,14 @@ function setAuthMode(mode){
     title.classList.add('hidden');
     desc.classList.add('hidden');
     resetSent.classList.remove('hidden');
+  } else if(mode==='signupSent'){
+    tabs.classList.add('hidden');
+    emailWrap.classList.add('hidden');
+    passWrap.classList.add('hidden');
+    sendBtn.classList.add('hidden');
+    title.classList.add('hidden');
+    desc.classList.add('hidden');
+    signupSent.classList.remove('hidden');
   } else if(mode==='newpass'){
     tabs.classList.add('hidden');
     title.textContent='Nueva contraseña';
@@ -1462,11 +1478,13 @@ async function submitAuth(){
     ({error}=await supa.auth.signInWithPassword({email,password:pass}));
   } else {
     let data;
-    ({data,error}=await supa.auth.signUp({email,password:pass}));
+    ({data,error}=await supa.auth.signUp({email,password:pass,options:{emailRedirectTo:window.location.href}}));
     if(!error){
       const isDuplicate=!data?.user?.identities||data.user.identities.length===0;
       if(isDuplicate){ setAuthError('Este email ya tiene una cuenta'); btn.disabled=false; setAuthMode('login'); return; }
-      toast('Cuenta creada — ya puedes usar la app'); document.getElementById('authModal').classList.add('hidden'); btn.disabled=false; setAuthMode('login'); return;
+      document.getElementById('authSignupEmail').textContent=email;
+      btn.disabled=false; setAuthMode('signupSent');
+      return;
     }
   }
   btn.disabled=false;
@@ -1631,6 +1649,7 @@ async function boot(){
   document.getElementById("authSend").addEventListener('click',submitAuth);
   document.getElementById("authForgot").addEventListener('click',()=>setAuthMode('reset'));
   document.getElementById("authResetBack").addEventListener('click',()=>setAuthMode('login'));
+  document.getElementById("authSignupBack").addEventListener('click',()=>setAuthMode('login'));
   document.getElementById("authClose").addEventListener('click',()=>{ document.getElementById('authModal').classList.add('hidden'); setAuthMode('login'); });
   document.getElementById("authPass").addEventListener('keydown',e=>{ if(e.key==='Enter') submitAuth(); });
   document.getElementById("authModal").addEventListener('click',e=>{ if(e.target===document.getElementById('authModal')){ document.getElementById('authModal').classList.add('hidden'); setAuthMode('login'); } });
