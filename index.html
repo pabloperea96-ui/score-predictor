@@ -1442,7 +1442,7 @@ async function submitAuth(){
   if(authMode==='reset'){
     if(!email){ setAuthError('Ingresa tu email'); btn.disabled=false; return; }
     ({error}=await supa.auth.resetPasswordForEmail(email,{redirectTo:window.location.href}));
-    btn.disabled=false;
+    btn.disabled=false; btn.textContent='Enviar enlace';
     if(error){ setAuthError(error.message); }
     else { document.getElementById('authResetEmail').textContent=email; setAuthMode('resetSent'); }
     return;
