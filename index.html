@@ -1241,6 +1241,7 @@ async function boot(){
   document.getElementById("authForgot").addEventListener('click',()=>setAuthMode('reset'));
   document.getElementById("authClose").addEventListener('click',()=>document.getElementById('authModal').classList.add('hidden'));
   document.getElementById("authPass").addEventListener('keydown',e=>{ if(e.key==='Enter') submitAuth(); });
+  document.getElementById("authModal").addEventListener('click',e=>{ if(e.target===document.getElementById('authModal')) document.getElementById('authModal').classList.add('hidden'); });
   document.getElementById("authEye").addEventListener('click',()=>{
     const p=document.getElementById('authPass');
     p.type=p.type==='password'?'text':'password';
