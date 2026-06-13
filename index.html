@@ -399,14 +399,14 @@
 <section id="hero">
   <div class="hero-inner">
     <h1 class="hero-h1">Predecí el Mundial 2026</h1>
-    <p class="hero-sub">Un motor de probabilidades Poisson que calcula las chances reales de cada partido usando el ranking FIFA. Ingresá tus pronósticos, compará con el modelo y seguí tu precisión en tiempo real.</p>
+    <p class="hero-sub">Un motor de probabilidades Poisson que calcula las chances reales de cada partido usando el ranking FIFA. Ingresa tus pronósticos, compara con el modelo y sigue tu precisión en tiempo real.</p>
     <div class="hero-steps">
-      <div class="hero-step"><span class="hero-num">1</span><span>Revisá las probabilidades de cada partido en la pestaña <b>Grupos</b></span></div>
-      <div class="hero-step"><span class="hero-num">2</span><span>Ingresá tus pronósticos de marcador antes de cada partido</span></div>
-      <div class="hero-step"><span class="hero-num">3</span><span>Cargá los resultados reales y seguí tu precisión en <b>Precisión</b></span></div>
+      <div class="hero-step"><span class="hero-num">1</span><span>Revisa las probabilidades de cada partido en la pestaña <b>Grupos</b></span></div>
+      <div class="hero-step"><span class="hero-num">2</span><span>Ingresa tus pronósticos de marcador antes de cada partido</span></div>
+      <div class="hero-step"><span class="hero-num">3</span><span>Carga los resultados reales y sigue tu precisión en <b>Precisión</b></span></div>
     </div>
     <button class="btn hero-cta" id="heroCta">Crear cuenta para sincronizar</button>
-    <p class="hero-note">También podés usar la app sin cuenta — los datos se guardan en este navegador.</p>
+    <p class="hero-note">También puedes usar la app sin cuenta — los datos se guardan en este navegador.</p>
   </div>
 </section>
 
@@ -418,13 +418,13 @@
 </div>
 
 <footer class="foot">
-  <div>Modelo Poisson · Ranking FIFA 11/06/2026 · <b>Iniciá sesión</b> para sincronizar entre dispositivos — los datos también se guardan localmente en este navegador.</div>
+  <div>Modelo Poisson · Ranking FIFA 11/06/2026 · <b>Inicia sesión</b> para sincronizar entre dispositivos — los datos también se guardan localmente en este navegador.</div>
 </footer>
 
 <div class="auth-overlay hidden" id="authModal">
   <div class="auth-card">
     <h3 id="authTitle">Iniciar sesión</h3>
-    <p id="authDesc">Ingresá tu email y contraseña para sincronizar tus pronósticos entre dispositivos.</p>
+    <p id="authDesc">Ingresa tu email y contraseña para sincronizar tus pronósticos entre dispositivos.</p>
     <div id="authEmailWrap">
       <input class="auth-input" type="email" id="authEmail" placeholder="tu@email.com" autocomplete="email">
     </div>
@@ -1126,27 +1126,27 @@ function setAuthMode(mode){
 
   if(mode==='login'){
     document.getElementById('authTitle').textContent='Iniciar sesión';
-    document.getElementById('authDesc').textContent='Ingresá tu email y contraseña para sincronizar tus pronósticos entre dispositivos.';
+    document.getElementById('authDesc').textContent='Ingresa tu email y contraseña para sincronizar tus pronósticos entre dispositivos.';
     document.getElementById('authSend').textContent='Iniciar sesión';
     toggle.textContent='¿Primera vez? Crear cuenta';
     document.getElementById('authPass').autocomplete='current-password';
   } else if(mode==='signup'){
     document.getElementById('authTitle').textContent='Crear cuenta';
-    document.getElementById('authDesc').textContent='Creá una cuenta para sincronizar tus pronósticos entre dispositivos.';
+    document.getElementById('authDesc').textContent='Crea una cuenta para sincronizar tus pronósticos entre dispositivos.';
     document.getElementById('authSend').textContent='Crear cuenta';
-    toggle.textContent='¿Ya tenés cuenta? Iniciar sesión';
+    toggle.textContent='¿Ya tienes cuenta? Iniciar sesión';
     forgot.classList.add('hidden');
     document.getElementById('authPass').autocomplete='new-password';
   } else if(mode==='reset'){
     document.getElementById('authTitle').textContent='Recuperar contraseña';
-    document.getElementById('authDesc').textContent='Ingresá tu email y te enviamos un enlace para crear una nueva contraseña.';
+    document.getElementById('authDesc').textContent='Ingresa tu email y te enviamos un enlace para crear una nueva contraseña.';
     document.getElementById('authSend').textContent='Enviar enlace';
     passWrap.classList.add('hidden');
     toggle.textContent='Volver a iniciar sesión';
     forgot.classList.add('hidden');
   } else if(mode==='newpass'){
     document.getElementById('authTitle').textContent='Nueva contraseña';
-    document.getElementById('authDesc').textContent='Ingresá tu nueva contraseña.';
+    document.getElementById('authDesc').textContent='Ingresa tu nueva contraseña.';
     document.getElementById('authSend').textContent='Guardar contraseña';
     emailWrap.classList.add('hidden');
     confirmWrap.classList.remove('hidden');
@@ -1164,16 +1164,16 @@ async function submitAuth(){
   btn.textContent='…'; btn.disabled=true;
   let error;
   if(authMode==='reset'){
-    if(!email){ toast('Ingresá tu email'); btn.disabled=false; setAuthMode('reset'); return; }
+    if(!email){ toast('Ingresa tu email'); btn.disabled=false; setAuthMode('reset'); return; }
     ({error}=await supa.auth.resetPasswordForEmail(email,{redirectTo:window.location.href}));
     btn.disabled=false;
     if(error){ toast(error.message); setAuthMode('reset'); }
-    else { toast('Enlace enviado — revisá tu email'); document.getElementById('authModal').classList.add('hidden'); setAuthMode('login'); }
+    else { toast('Enlace enviado — revisa tu email'); document.getElementById('authModal').classList.add('hidden'); setAuthMode('login'); }
     return;
   }
   if(authMode==='newpass'){
     const confirm=document.getElementById('authConfirm').value;
-    if(!pass||!confirm){ toast('Completá los dos campos'); btn.disabled=false; return; }
+    if(!pass||!confirm){ toast('Completa los dos campos'); btn.disabled=false; return; }
     if(pass!==confirm){ toast('Las contraseñas no coinciden'); btn.disabled=false; return; }
     ({error}=await supa.auth.updateUser({password:pass}));
     btn.disabled=false;
@@ -1181,12 +1181,12 @@ async function submitAuth(){
     else { toast('Contraseña actualizada'); document.getElementById('authModal').classList.add('hidden'); setAuthMode('login'); }
     return;
   }
-  if(!email||!pass){ toast('Completá email y contraseña'); btn.disabled=false; return; }
+  if(!email||!pass){ toast('Completa el email y la contraseña'); btn.disabled=false; return; }
   if(authMode==='login'){
     ({error}=await supa.auth.signInWithPassword({email,password:pass}));
   } else {
     ({error}=await supa.auth.signUp({email,password:pass}));
-    if(!error){ toast('Cuenta creada — ya podés usar la app'); document.getElementById('authModal').classList.add('hidden'); btn.disabled=false; setAuthMode('login'); return; }
+    if(!error){ toast('Cuenta creada — ya puedes usar la app'); document.getElementById('authModal').classList.add('hidden'); btn.disabled=false; setAuthMode('login'); return; }
   }
   btn.disabled=false; setAuthMode(authMode);
   if(error){ toast(error.message==='Invalid login credentials'?'Email o contraseña incorrectos':error.message); }
