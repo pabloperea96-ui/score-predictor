@@ -6,11 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **static** — single self-contained HTML file. No build step, no package manager, no backend, no secrets, no Doppler. All persistence is via `localStorage` (key: `wc26`).
 
-The entire application lives in `mundial26.html`.
+The entire application lives in `index.html`.
 
 ## How to Run
 
-Open `mundial26.html` directly in any browser. No server required.
+Open `index.html` directly in any browser. No server required.
 
 ## Architecture
 
