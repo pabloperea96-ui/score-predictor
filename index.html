@@ -69,6 +69,9 @@
   a{color:var(--loss)}
   .wrap{max-width:1120px;margin:0 auto;padding:0 16px calc(80px + env(safe-area-inset-bottom))}
 
+  /* Barra superior: masthead + tabs pegados juntos (un solo sticky) */
+  .topbar{position:sticky;top:0;z-index:var(--z-mast)}
+
   /* Masthead */
   header.mast{
     border-bottom:1px solid rgba(255,255,255,0.12);
@@ -76,7 +79,6 @@
     backdrop-filter:blur(48px) saturate(1.8);
     -webkit-backdrop-filter:blur(48px) saturate(1.8);
     box-shadow:0 1px 0 rgba(255,255,255,0.10),0 4px 32px rgba(0,0,0,0.6);
-    position:sticky;top:0;z-index:30;
   }
   .mast-in{
     max-width:1120px;margin:0 auto;
@@ -110,7 +112,7 @@
     background:rgba(6,10,15,0.5);
     backdrop-filter:blur(32px);
     -webkit-backdrop-filter:blur(32px);
-    position:sticky;top:calc(env(safe-area-inset-top) + 56px);z-index:20;overflow-x:auto;
+    overflow-x:auto;
     padding-left:max(16px,env(safe-area-inset-left));
     padding-right:max(16px,env(safe-area-inset-right));
     max-width:1120px;margin:0 auto;
@@ -175,7 +177,8 @@
   .group--collapsed .group-body{max-height:0}
 
   /* Standings */
-  .stand-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .stand-scroll{position:relative}
+  .stand-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
   table.stand{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
   table.stand th{
     font-family:var(--sans);font-size:12px;letter-spacing:0;text-transform:none;color:var(--muted);
@@ -370,7 +373,6 @@
     .probbar,.problbl{max-width:100%}
     .mteam.away{text-align:left;align-items:flex-start}
     .mteam.away .row{flex-direction:row}
-    nav.tabs{top:calc(env(safe-area-inset-top) + 56px)}
     .ctl{grid-template-columns:1fr 64px;grid-template-areas:"lab val" "rng rng"}
     .ctl label{grid-area:lab}.ctl .val{grid-area:val}.ctl input{grid-area:rng}
     .hero-letter{font-size:40px}
@@ -378,13 +380,21 @@
     .bracket-wrap{grid-template-columns:1fr}
     .sc{width:48px;min-height:48px;font-size:20px}
     .mteam{padding:16px}
-    /* Densidad de standings: ocultar G/E/P y reducir nombre en móvil */
-    table.stand th:nth-child(3),table.stand td:nth-child(3),
-    table.stand th:nth-child(4),table.stand td:nth-child(4),
-    table.stand th:nth-child(5),table.stand td:nth-child(5){display:none}
+    /* Standings: todas las columnas, más compactas, con scroll horizontal */
     table.stand th,table.stand td{padding:8px 6px}
     table.stand th.tl,table.stand td.tl{padding-left:12px}
     .tname{font-size:15px}
+    /* Afordancia de scroll: degradado pinneado en el borde derecho */
+    .stand-scroll::after{
+      content:'';position:absolute;top:0;right:0;bottom:0;width:32px;
+      background:linear-gradient(to left, rgba(10,13,18,0.9), transparent);
+      pointer-events:none;z-index:2;
+    }
+  }
+  @media(max-width:560px){
+    /* Masthead compacto: marca + acceso a cuenta, una sola fila */
+    .wordmark .ttl{display:none}
+    #authUser{display:none}
   }
   @media(max-width:374px){
     .hero-letter{font-size:32px}
@@ -549,6 +559,7 @@
 
 <a class="skip-link" href="#main">Saltar al contenido</a>
 
+<div class="topbar">
 <header class="mast">
   <div class="mast-in">
     <div class="wordmark">
@@ -566,6 +577,7 @@
 </header>
 
 <nav class="tabs" id="tabs" role="tablist" aria-label="Secciones"></nav>
+</div>
 
 <section id="hero" class="hidden">
   <div class="hero-inner">
@@ -984,7 +996,7 @@ function renderGroups(){
         </div>
       </div>
       <div class="group-body">
-        <div class="stand-wrap"><table class="stand">
+        <div class="stand-scroll"><div class="stand-wrap"><table class="stand">
           <thead><tr>
             <th class="tl">Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th>
             <th>GF</th><th>GC</th><th>DG</th><th>Pts</th>
@@ -1002,7 +1014,7 @@ function renderGroups(){
         <td><input class="miniinput" inputmode="numeric" data-adj="${r.code}" value="${STATE.adj[r.code]}"></td>
       </tr>`;
     });
-    html+=`</tbody></table></div><div class="matches">`;
+    html+=`</tbody></table></div></div><div class="matches">`;
     PAIRINGS.forEach((pr,pi)=>{ html+=matchHTML(g,pi); });
     html+=`</div></div></div>`;
   }
