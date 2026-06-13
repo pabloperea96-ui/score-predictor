@@ -372,6 +372,7 @@
   .auth-pass-wrap .auth-input{margin-bottom:0;padding-right:48px}
   .auth-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;padding:4px;line-height:1;opacity:0.5;transition:opacity .15s}
   .auth-eye:hover{opacity:1}
+  .auth-error{background:rgba(240,121,106,0.10);border:1px solid rgba(240,121,106,0.28);border-radius:8px;color:#f0796a;font-size:13px;padding:10px 14px;margin-bottom:12px;line-height:1.4}
   .auth-btn{width:100%;margin-bottom:8px;border-radius:10px}
   .auth-link{font-size:13px;color:var(--muted);text-align:center;cursor:pointer;padding:4px;display:block;font-family:var(--sans)}
   .auth-link:hover{color:var(--txt)}
@@ -438,6 +439,7 @@
     <div class="auth-pass-wrap hidden" id="authConfirmWrap">
       <input class="auth-input" type="password" id="authConfirm" placeholder="Confirmar contraseña" autocomplete="new-password">
     </div>
+    <div class="auth-error hidden" id="authError"></div>
     <button class="btn auth-btn" id="authSend">Iniciar sesión</button>
     <span class="auth-link" id="authToggle">¿Primera vez? Crear cuenta</span>
     <span class="auth-link" id="authForgot">¿Olvidaste tu contraseña?</span>
@@ -1110,9 +1112,17 @@ function updateAuthUI(user){
   }
 }
 
+function setAuthError(msg){
+  const el=document.getElementById('authError');
+  if(!el) return;
+  if(msg){ el.textContent=msg; el.classList.remove('hidden'); }
+  else { el.textContent=''; el.classList.add('hidden'); }
+}
+
 let authMode='login';
 function setAuthMode(mode){
   authMode=mode;
+  setAuthError('');
   const emailWrap=document.getElementById('authEmailWrap');
   const passWrap=document.getElementById('authPassWrap');
   const confirmWrap=document.getElementById('authConfirmWrap');
@@ -1166,24 +1176,24 @@ async function submitAuth(){
   btn.textContent='…'; btn.disabled=true;
   let error;
   if(authMode==='reset'){
-    if(!email){ toast('Ingresa tu email'); btn.disabled=false; setAuthMode('reset'); return; }
+    if(!email){ setAuthError('Ingresa tu email'); btn.disabled=false; return; }
     ({error}=await supa.auth.resetPasswordForEmail(email,{redirectTo:window.location.href}));
     btn.disabled=false;
-    if(error){ toast(error.message); setAuthMode('reset'); }
+    if(error){ setAuthError(error.message); }
     else { toast('Enlace enviado — revisa tu email'); document.getElementById('authModal').classList.add('hidden'); setAuthMode('login'); }
     return;
   }
   if(authMode==='newpass'){
     const confirm=document.getElementById('authConfirm').value;
-    if(!pass||!confirm){ toast('Completa los dos campos'); btn.disabled=false; return; }
-    if(pass!==confirm){ toast('Las contraseñas no coinciden'); btn.disabled=false; return; }
+    if(!pass||!confirm){ setAuthError('Completa los dos campos'); btn.disabled=false; return; }
+    if(pass!==confirm){ setAuthError('Las contraseñas no coinciden'); btn.disabled=false; return; }
     ({error}=await supa.auth.updateUser({password:pass}));
     btn.disabled=false;
-    if(error){ toast(error.message); }
+    if(error){ setAuthError(error.message); }
     else { toast('Contraseña actualizada'); document.getElementById('authModal').classList.add('hidden'); setAuthMode('login'); }
     return;
   }
-  if(!email||!pass){ toast('Completa el email y la contraseña'); btn.disabled=false; return; }
+  if(!email||!pass){ setAuthError('Ingresa tu email y contraseña'); btn.disabled=false; return; }
   if(authMode==='login'){
     ({error}=await supa.auth.signInWithPassword({email,password:pass}));
   } else {
@@ -1191,12 +1201,12 @@ async function submitAuth(){
     ({data,error}=await supa.auth.signUp({email,password:pass}));
     if(!error){
       const isDuplicate=!data?.user?.identities||data.user.identities.length===0;
-      if(isDuplicate){ toast('Este email ya tiene una cuenta — inicia sesión'); btn.disabled=false; setAuthMode('login'); return; }
+      if(isDuplicate){ setAuthError('Este email ya tiene una cuenta'); btn.disabled=false; setAuthMode('login'); return; }
       toast('Cuenta creada — ya puedes usar la app'); document.getElementById('authModal').classList.add('hidden'); btn.disabled=false; setAuthMode('login'); return;
     }
   }
-  btn.disabled=false; setAuthMode(authMode);
-  if(error){ toast(error.message==='Invalid login credentials'?'Email o contraseña incorrectos':error.message==='User already registered'?'Este email ya tiene una cuenta — inicia sesión':error.message); }
+  btn.disabled=false;
+  if(error){ setAuthError(error.message==='Invalid login credentials'?'Email o contraseña incorrectos':error.message==='User already registered'?'Este email ya tiene una cuenta':error.message); }
   else { document.getElementById('authModal').classList.add('hidden'); }
 }
 
