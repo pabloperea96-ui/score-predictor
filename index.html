@@ -390,6 +390,15 @@
       background:linear-gradient(to left, rgba(10,13,18,0.9), transparent);
       pointer-events:none;z-index:2;
     }
+    /* Gutter lateral de página: 24px en móvil */
+    .wrap{padding-left:24px;padding-right:24px}
+    .mast-in{padding-left:24px;padding-right:24px}
+    nav.tabs{padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right))}
+    footer.foot{padding-left:24px;padding-right:24px}
+    #hero{padding-left:24px;padding-right:24px}
+    /* Hero: botones apilados a ancho completo */
+    .hero-actions{flex-direction:column}
+    .hero-actions .btn{width:100%}
   }
   @media(max-width:560px){
     /* Masthead compacto: marca + acceso a cuenta, una sola fila */
@@ -419,8 +428,10 @@
     min-width:24px;height:24px;border-radius:9999px;
     display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
   }
-  .hero-cta{font-size:15px;padding:12px 24px;min-height:48px;margin-bottom:12px;background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600;box-shadow:0 4px 20px var(--brand-glow)}
-  .hero-cta:hover{background:var(--brand-soft);border-color:var(--brand-soft);color:var(--brand-ink);box-shadow:0 6px 28px var(--brand-glow)}
+  .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .btn.hero-cta{font-size:15px;padding:12px 24px;min-height:48px;background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600;box-shadow:0 4px 20px var(--brand-glow)}
+  .btn.hero-cta:hover{background:var(--brand-soft);border-color:var(--brand-soft);color:var(--brand-ink);box-shadow:0 6px 28px var(--brand-glow)}
+  .hero-cta-2{font-size:15px;padding:12px 24px;min-height:48px;font-weight:600}
   .hero-note{font-size:12px;color:var(--faint);margin:0}
   @media(max-width:640px){.hero-h1{font-size:28px}.hero-inner{padding:24px 20px}}
 
@@ -445,8 +456,8 @@
   .auth-tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:12px;padding:3px;margin-bottom:24px;background:rgba(0,0,0,0.3)}
   .auth-tab{flex:1;font-family:var(--sans);font-size:14px;font-weight:500;background:none;border:none;cursor:pointer;color:var(--muted);border-radius:9px;padding:8px;transition:.15s;text-align:center}
   .auth-tab.on{background:rgba(255,255,255,0.12);color:var(--txt);box-shadow:0 1px 4px rgba(0,0,0,0.3)}
-  .auth-btn-accent{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600}
-  .auth-btn-accent:hover{background:var(--brand-soft);border-color:var(--brand-soft);color:var(--brand-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,0.25),0 4px 16px var(--brand-glow)}
+  .btn.auth-btn-accent{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600}
+  .btn.auth-btn-accent:hover{background:var(--brand-soft);border-color:var(--brand-soft);color:var(--brand-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,0.25),0 4px 16px var(--brand-glow)}
   .auth-hint{font-size:12px;color:var(--faint);margin:-4px 0 10px;padding:0 4px;display:block}
   .auth-success{text-align:center;padding:8px 0 8px}
   .auth-success-icon{font-size:36px;margin-bottom:12px}
@@ -588,7 +599,10 @@
       <div class="hero-step"><span class="hero-num">2</span><span>Ingresa tus pronósticos de marcador antes de cada partido</span></div>
       <div class="hero-step"><span class="hero-num">3</span><span>Carga los resultados reales y sigue tu precisión en <b>Precisión</b></span></div>
     </div>
-    <button class="btn hero-cta" id="heroCta">Crear cuenta para sincronizar</button>
+    <div class="hero-actions">
+      <button class="btn hero-cta" id="heroCta">Crear cuenta</button>
+      <button class="btn hero-cta-2" id="heroLogin">Iniciar sesión</button>
+    </div>
     <p class="hero-note">También puedes usar la app sin cuenta — los datos se guardan en este navegador.</p>
   </div>
 </section>
@@ -1887,6 +1901,7 @@ async function boot(){
   renderGroups();
   switchTab(TABS[0][0]);
   document.getElementById("heroCta").addEventListener('click',()=>{ setAuthMode('signup'); document.getElementById('authModal').classList.remove('hidden'); });
+  document.getElementById("heroLogin").addEventListener('click',()=>{ setAuthMode('login'); document.getElementById('authModal').classList.remove('hidden'); });
   document.getElementById("profileClose").addEventListener('click',()=>document.getElementById('profileModal').classList.add('hidden'));
   document.getElementById("profileModal").addEventListener('click',e=>{ if(e.target===document.getElementById('profileModal')) document.getElementById('profileModal').classList.add('hidden'); });
   document.getElementById("profileLogout").addEventListener('click',async()=>{ await supa.auth.signOut(); document.getElementById('profileModal').classList.add('hidden'); updateAuthUI(null); setSyncDot(''); toast('Sesión cerrada'); });
