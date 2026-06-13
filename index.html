@@ -51,6 +51,7 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0;padding:0}
+  html{overflow-x:clip}
   body{
     background:
       radial-gradient(ellipse 90% 55% at 50% -12%, rgba(251,106,58,0.11) 0%, transparent 60%),
@@ -173,8 +174,9 @@
     transition:transform .2s ease;flex-shrink:0;
   }
   .group--collapsed .chevron{transform:rotate(0deg)}
-  .group-body{max-height:2400px;overflow:hidden;transition:max-height .35s cubic-bezier(0.4,0,0.2,1)}
-  .group--collapsed .group-body{max-height:0}
+  .group-body{display:grid;grid-template-rows:1fr;transition:grid-template-rows .35s cubic-bezier(0.4,0,0.2,1)}
+  .group--collapsed .group-body{grid-template-rows:0fr}
+  .group-body-inner{overflow:hidden;min-height:0}
 
   /* Standings */
   .stand-scroll{position:relative}
@@ -336,6 +338,7 @@
   .ctl input[type=range]{width:100%;accent-color:var(--accent)}
   .ctl .val{font-family:var(--mono);font-size:14px;text-align:right;color:#fff}
 
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .ledger{width:100%;border-collapse:collapse;font-size:14px;margin-top:8px;font-variant-numeric:tabular-nums}
   .ledger th{
     font-family:var(--sans);font-size:12px;letter-spacing:0;text-transform:none;
@@ -1007,7 +1010,7 @@ function renderGroups(){
           <span class="chevron">&#x203a;</span>
         </div>
       </div>
-      <div class="group-body">
+      <div class="group-body"><div class="group-body-inner">
         <div class="stand-scroll"><div class="stand-wrap"><table class="stand">
           <thead><tr>
             <th class="tl">Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th>
@@ -1028,7 +1031,7 @@ function renderGroups(){
     });
     html+=`</tbody></table></div></div><div class="matches">`;
     PAIRINGS.forEach((pr,pi)=>{ html+=matchHTML(g,pi); });
-    html+=`</div></div></div>`;
+    html+=`</div></div></div></div>`;
   }
   root.innerHTML=html;
   bindGroupInputs();
@@ -1425,9 +1428,9 @@ function ledgerHTML(){
     });
   }
   if(!rows) rows=`<tr><td colspan="6" style="color:var(--faint);padding:16px 8px">Aún no cargaste resultados reales. Ingresalos en la pestaña Grupos.</td></tr>`;
-  return `<table class="ledger"><thead><tr>
+  return `<div class="table-scroll"><table class="ledger"><thead><tr>
     <th>Gr</th><th>Partido</th><th>Real</th><th>Tu pron.</th><th>Modelo</th><th>Confianza</th>
-  </tr></thead><tbody>${rows}</tbody></table>`;
+  </tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function refreshDashIfOpen(){ if(document.getElementById("view-dash").classList.contains("on")) renderDash(); }
