@@ -428,6 +428,33 @@
   .priv-body strong{color:var(--txt)}
   .priv-updated{font-size:11px;color:var(--faint);margin-bottom:16px}
 
+  /* ── Pronóstico confirmado ──────────────────────────────────────── */
+  .pred-confirmed{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap;padding:4px 0}
+  .pred-confirmed-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;width:100%;text-align:center;margin-bottom:2px}
+  .pred-confirmed-score{font-family:var(--mono);font-weight:700;font-size:20px;color:var(--txt)}
+  .pred-confirmed-score::before{content:'✓ ';color:var(--win)}
+  .pred-edit{font-size:12px;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+  .pred-edit:hover{color:var(--txt)}
+  .pred-save-btn{display:block;width:100%;max-width:180px;margin:6px auto 0;font-size:13px;padding:8px 0;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);color:var(--txt);border-radius:10px;cursor:pointer;transition:background .15s}
+  .pred-save-btn:hover{background:rgba(255,255,255,0.12)}
+
+  /* ── Banner (Mis pronósticos) ───────────────────────────────────── */
+  .dash-banner{border-radius:16px;padding:16px 20px;margin-bottom:16px}
+  .dash-banner-live{background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.3)}
+  .dash-banner-next{background:rgba(255,255,255,.04);border:1px solid var(--border2)}
+  .dbanner-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .dash-banner-live .dbanner-label{color:var(--win)}
+  .dbanner-teams{font-size:18px;font-weight:700;color:var(--txt);margin-bottom:4px}
+  .dbanner-vs{font-weight:400;color:var(--faint);font-size:14px;margin:0 4px}
+  .dbanner-time{font-size:13px;color:var(--muted);margin-bottom:4px}
+  .dbanner-pred{font-size:13px;color:var(--muted)}
+  .dbanner-pred strong{color:var(--txt)}
+  .lock-notice{font-size:12px;color:var(--muted);text-align:center;padding:6px 0;letter-spacing:.02em}
+
+  /* ── Auth gate ───────────────────────────────────────────────────── */
+  body.no-auth #tabs{display:none}
+  body.no-auth section.view{display:none !important}
+
   /* ── Animaciones ─────────────────────────────────────────────────── */
   @keyframes overlayIn{from{opacity:0}to{opacity:1}}
   @keyframes cardIn{from{opacity:0;transform:scale(0.96) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
@@ -445,7 +472,7 @@
   .auth-link:active{opacity:0.6}
 </style>
 </head>
-<body>
+<body class="no-auth">
 
 <header class="mast">
   <div class="mast-in">
@@ -464,7 +491,7 @@
 
 <nav class="tabs" id="tabs"></nav>
 
-<section id="hero">
+<section id="hero" class="hidden">
   <div class="hero-inner">
     <h1 class="hero-h1">Predice el Mundial 2026</h1>
     <p class="hero-sub">Un motor de probabilidades Poisson que calcula las chances reales de cada partido usando el ranking FIFA. Ingresa tus pronósticos, compara con el modelo y sigue tu precisión en tiempo real.</p>
@@ -756,8 +783,10 @@ function seedState(){
       m.venue  ??= pv.venue||"N";
       m.alt    ??= !!pv.alt;
       m.predA  ??= ""; m.predB ??= "";
-      m.status ??= null;
-      m.minute ??= null;
+      m.status       ??= null;
+      m.minute       ??= null;
+      m.kickoff      ??= null;
+      m.predConfirmed??= (m.predA!==''&&m.predB!=='');
       if(PLAYED[id]){ m.actA ??= PLAYED[id][0]; m.actB ??= PLAYED[id][1]; }
       else { m.actA ??= ""; m.actB ??= ""; }
     });
@@ -912,7 +941,8 @@ function matchHTML(g,pi){
   const yourOc=outcome(m.predA,m.predB);
   const isLive=m.status==='IN_PLAY'||m.status==='PAUSED';
   const isDone=oc!==null;
-  const disagree=!isDone&&!isLive&&yourOc&&(yourOc!==pick);
+  const isLocked=!isDone&&!isLive&&m.kickoff&&Date.now()>=m.kickoff-10*60*1000;
+  const disagree=!isDone&&!isLive&&!isLocked&&yourOc&&(yourOc!==pick);
 
   const venSel=`<select class="venuepick" data-venue="${id}">
     <option value="N"${m.venue==='N'?' selected':''}>neutral</option>
@@ -956,8 +986,29 @@ function matchHTML(g,pi){
       <div class="toplines">prob. marcadores: ${mo.top.map(c=>`${c.i}-${c.j}`).join(" · ")}</div>
       <div class="pron-compact">Tu pronóstico: <span class="pron-val">${predTxt}</span></div>
       <div style="display:flex;gap:8px;align-items:center;margin-top:8px">${venSel}${altT}</div>`;
+  } else if(isLocked){
+    // Variante D — Bloqueado (dentro de 10 min del kickoff)
+    const predTxt=m.predA!==''?`${m.predA}–${m.predB}`:'Sin pronóstico';
+    centerHTML=`
+      ${probBar}
+      <div class="toplines">prob. marcadores: ${mo.top.map(c=>`${c.i}-${c.j}`).join(" · ")}</div>
+      <div class="lock-notice">🔒 Pronósticos cerrados</div>
+      <div class="pron-compact">Tu pronóstico: <span class="pron-val">${predTxt}</span></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">${venSel}${altT}</div>`;
+  } else if(m.predConfirmed){
+    // Variante A-confirmed — Pronóstico guardado (locked)
+    centerHTML=`
+      ${probBar}
+      <div class="toplines">prob. marcadores: ${mo.top.map(c=>`${c.i}-${c.j}`).join(" · ")}</div>
+      <div class="pred-confirmed">
+        <span class="pred-confirmed-label">Tu pronóstico</span>
+        <span class="pred-confirmed-score">${m.predA} — ${m.predB}</span>
+        <span class="pred-edit" data-edit="${id}">Editar</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">${venSel}${altT}</div>`;
   } else {
-    // Variante A — Pendiente
+    // Variante A — Pendiente / editable
+    const ambos=m.predA!==''&&m.predB!=='';
     centerHTML=`
       ${probBar}
       <div class="toplines">prob. marcadores: ${mo.top.map(c=>`${c.i}-${c.j}`).join(" · ")}</div>
@@ -966,11 +1017,12 @@ function matchHTML(g,pi){
           <div class="ins"><input class="sc" data-pred="${id}:A" value="${m.predA}" inputmode="numeric"><span class="dash">–</span><input class="sc" data-pred="${id}:B" value="${m.predB}" inputmode="numeric"></div>
         </div>
       </div>
+      <button class="pred-save-btn${ambos?'':' hidden'}" data-confirm="${id}">Guardar pronóstico</button>
       <div class="verdict"><span class="pend">— pendiente —</span></div>
       <div style="display:flex;gap:8px;align-items:center">${venSel}${altT}</div>`;
   }
 
-  const cardClass=`match${isLive?' match-live':isDone?'':disagree?' disagree':''}`;
+  const cardClass=`match${isLocked?' match-locked':isLive?' match-live':isDone?'':disagree?' disagree':''}`;
 
   return `<div class="${cardClass}">
     <div class="mteam home">
@@ -1024,7 +1076,24 @@ function bindGroupInputs(){
     inp.addEventListener('input',e=>{
       const [id,side]=e.target.dataset.pred.split(/:(?=[AB]$)/);
       STATE.matches[id]["pred"+side]=clean(e.target.value);
+      STATE.matches[id].predConfirmed=false;
+      const saveBtn=document.querySelector(`[data-confirm="${id}"]`);
+      if(saveBtn){ const m=STATE.matches[id]; saveBtn.classList.toggle('hidden',m.predA===''||m.predB===''); }
       refreshCard(id); save(); refreshDashIfOpen(); refreshLlavesIfOpen();
+    });
+  });
+  document.querySelectorAll('[data-confirm]').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      const id=e.currentTarget.dataset.confirm;
+      STATE.matches[id].predConfirmed=true;
+      renderGroups(); save(); refreshDashIfOpen();
+    });
+  });
+  document.querySelectorAll('[data-edit]').forEach(el=>{
+    el.addEventListener('click',e=>{
+      const id=e.currentTarget.dataset.edit;
+      STATE.matches[id].predConfirmed=false;
+      renderGroups(); save();
     });
   });
   document.querySelectorAll('[data-venue]').forEach(sel=>{
@@ -1149,12 +1218,57 @@ function tally(){
   return {played,youHit,youExact,modHit,brier:brierN?brierSum/brierN:null,youScored};
 }
 
+function bannerHTML(){
+  // Partido en vivo
+  for(const g of GROUP_LETTERS){
+    for(let pi=0;pi<PAIRINGS.length;pi++){
+      const id=matchId(g,pi), m=STATE.matches[id];
+      if(m.status==='IN_PLAY'||m.status==='PAUSED'){
+        const ta=TEAMS[g][PAIRINGS[pi][0]], tb=TEAMS[g][PAIRINGS[pi][1]];
+        const liveLabel=m.status==='PAUSED'?'⏸ Descanso':`<span class="live-dot"></span> EN VIVO`;
+        const minTxt=m.minute?` · min ${m.minute}'`:'';
+        const predTxt=m.predA!==''?`${m.predA}–${m.predB}`:'Sin pronóstico';
+        return `<div class="dash-banner dash-banner-live">
+          <div class="dbanner-label">${liveLabel}${minTxt}</div>
+          <div class="dbanner-teams">${flag(ta[1])} ${ta[0]} <span class="dbanner-vs">vs</span> ${tb[0]} ${flag(tb[1])}</div>
+          <div class="dbanner-pred">Tu pronóstico: <strong>${predTxt}</strong></div>
+        </div>`;
+      }
+    }
+  }
+  // Próximo partido
+  let nextKo=null, nextG=null, nextPi=null;
+  const now=Date.now();
+  for(const g of GROUP_LETTERS){
+    for(let pi=0;pi<PAIRINGS.length;pi++){
+      const m=STATE.matches[matchId(g,pi)];
+      if(!m.kickoff||m.status==='FINISHED') continue;
+      if(m.kickoff>now&&(!nextKo||m.kickoff<nextKo)){ nextKo=m.kickoff; nextG=g; nextPi=pi; }
+    }
+  }
+  if(nextKo){
+    const id=matchId(nextG,nextPi), m=STATE.matches[id];
+    const ta=TEAMS[nextG][PAIRINGS[nextPi][0]], tb=TEAMS[nextG][PAIRINGS[nextPi][1]];
+    const predTxt=m.predA!==''?`${m.predA}–${m.predB}`:'Sin pronóstico';
+    const ko=new Date(nextKo);
+    const timeStr=ko.toLocaleString('es',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    return `<div class="dash-banner dash-banner-next">
+      <div class="dbanner-label">Próximo partido</div>
+      <div class="dbanner-teams">${flag(ta[1])} ${ta[0]} <span class="dbanner-vs">vs</span> ${tb[0]} ${flag(tb[1])}</div>
+      <div class="dbanner-time">${timeStr}</div>
+      <div class="dbanner-pred">Tu pronóstico: <strong>${predTxt}</strong></div>
+    </div>`;
+  }
+  return '';
+}
+
 function renderDash(){
   const t=tally();
   const root=document.getElementById("view-dash");
   const youPct=t.youScored?Math.round(t.youHit/t.youScored*100):null;
   const modPct=t.played?Math.round(t.modHit/t.played*100):null;
   root.innerHTML=`
+    ${bannerHTML()}
     <div class="cards">
       <div class="card"><div class="k">Partidos cargados</div><div class="v">${t.played}<small> / 72</small></div><div class="note">fase de grupos</div></div>
       <div class="card"><div class="k vs-you">Aciertos tuyos</div><div class="v">${youPct==null?'—':youPct+'<small>%</small>'}</div><div class="note">${t.youHit}/${t.youScored} · ${t.youExact} exactos</div></div>
@@ -1260,7 +1374,7 @@ function renderCalib(){
 /* ----------------------------------------------------------------
    TABS
 -----------------------------------------------------------------*/
-const TABS=[["groups","Grupos"],["llaves","Llaves"],["dash","Precisión"],["model","Modelo"]];
+const TABS=[["dash","Mis pronósticos"],["groups","Grupos"],["llaves","Llaves"],["model","Modelo"]];
 function buildTabs(){
   const nav=document.getElementById("tabs");
   nav.innerHTML=TABS.map((t,i)=>`<button data-tab="${t[0]}" class="${i===0?'on':''}">${t[1]}</button>`).join("");
@@ -1325,12 +1439,14 @@ function updateAuthUI(user){
     userEl.onclick=()=>openProfile(user.email);
     btn.textContent='Mi cuenta';
     btn.onclick=()=>openProfile(user.email);
+    document.body.classList.remove('no-auth');
     if(hero){ hero.style.opacity='0'; setTimeout(()=>hero.classList.add('hidden'),300); }
   } else {
     userEl.textContent='';
     btn.textContent='Iniciar sesión';
     btn.onclick=()=>document.getElementById('authModal').classList.remove('hidden');
     setSyncDot('');
+    document.body.classList.add('no-auth');
     if(hero){ hero.classList.remove('hidden'); requestAnimationFrame(()=>{ hero.style.opacity=''; }); }
   }
 }
@@ -1585,11 +1701,12 @@ async function fetchLiveResults(){
       const m=STATE.matches[id];
       if(!m) continue;
 
-      // Actualizar status y minuto siempre
+      // Actualizar status, minuto y kickoff siempre
       const newStatus=match.status||null;
       const newMinute=match.minute||null;
-      if(m.status!==newStatus||m.minute!==newMinute){
-        m.status=newStatus; m.minute=newMinute; changed=true;
+      const newKickoff=match.utcDate?new Date(match.utcDate).getTime():null;
+      if(m.status!==newStatus||m.minute!==newMinute||m.kickoff!==newKickoff){
+        m.status=newStatus; m.minute=newMinute; m.kickoff=newKickoff; changed=true;
       }
 
       // Actualizar resultado solo en partidos finalizados
@@ -1637,6 +1754,7 @@ async function boot(){
   seedState();
   buildTabs();
   renderGroups();
+  switchTab(TABS[0][0]);
   document.getElementById("heroCta").addEventListener('click',()=>{ setAuthMode('signup'); document.getElementById('authModal').classList.remove('hidden'); });
   document.getElementById("profileClose").addEventListener('click',()=>document.getElementById('profileModal').classList.add('hidden'));
   document.getElementById("profileModal").addEventListener('click',e=>{ if(e.target===document.getElementById('profileModal')) document.getElementById('profileModal').classList.add('hidden'); });
