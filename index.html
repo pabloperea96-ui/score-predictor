@@ -377,7 +377,16 @@
   .auth-link{font-size:13px;color:var(--muted);text-align:center;cursor:pointer;padding:4px;display:block;font-family:var(--sans)}
   .auth-link:hover{color:var(--txt)}
   #syncDot{font-size:10px;line-height:1;transition:color .3s;flex-shrink:0}
-  #authUser{font-size:12px;color:var(--muted);font-family:var(--mono);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #authUser{font-size:12px;color:var(--muted);font-family:var(--mono);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(255,255,255,0.2)}
+  #authUser:hover{color:var(--txt)}
+
+  /* Profile modal */
+  .prof-email{font-family:var(--mono);font-size:13px;color:var(--muted);background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:24px;word-break:break-all}
+  .prof-sep{border:none;border-top:1px solid var(--border);margin:16px 0}
+  .btn-danger{background:rgba(240,121,106,0.10);border-color:rgba(240,121,106,0.3);color:#f0796a}
+  .btn-danger:hover{background:rgba(240,121,106,0.18);border-color:rgba(240,121,106,0.55);color:#f0796a;box-shadow:inset 0 1px 0 rgba(255,255,255,0.1),0 4px 16px rgba(240,121,106,0.15)}
+  .prof-warn{background:rgba(240,121,106,0.08);border:1px solid rgba(240,121,106,0.25);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px}
+  .prof-warn strong{color:#f0796a;display:block;margin-bottom:4px}
 </style>
 </head>
 <body>
@@ -443,6 +452,30 @@
     <button class="btn auth-btn" id="authSend">Iniciar sesión</button>
     <span class="auth-link" id="authToggle">¿Primera vez? Crear cuenta</span>
     <span class="auth-link" id="authForgot">¿Olvidaste tu contraseña?</span>
+  </div>
+</div>
+
+<div class="auth-overlay hidden" id="profileModal">
+  <div class="auth-card">
+    <button class="auth-close-x" id="profileClose" aria-label="Cerrar">&#x2715;</button>
+
+    <div id="profileInfo">
+      <h3>Mi cuenta</h3>
+      <div class="prof-email" id="profileEmail"></div>
+      <button class="btn auth-btn" id="profileLogout">Cerrar sesión</button>
+      <hr class="prof-sep">
+      <span class="auth-link" id="profileDeleteBtn" style="color:var(--bad)">Eliminar cuenta</span>
+    </div>
+
+    <div id="profileConfirm" class="hidden">
+      <h3>¿Eliminar cuenta?</h3>
+      <div class="prof-warn">
+        <strong>Esta acción es permanente e irreversible.</strong>
+        Se eliminarán tu cuenta y todos tus pronósticos guardados. No podrás recuperarlos.
+      </div>
+      <button class="btn auth-btn btn-danger" id="profileDeleteConfirm">Sí, eliminar mi cuenta</button>
+      <span class="auth-link" id="profileDeleteCancel">Cancelar</span>
+    </div>
   </div>
 </div>
 
@@ -1100,8 +1133,9 @@ function updateAuthUI(user){
   if(!userEl||!btn) return;
   if(user){
     userEl.textContent=user.email;
-    btn.textContent='Cerrar sesión';
-    btn.onclick=async()=>{ await supa.auth.signOut(); updateAuthUI(null); setSyncDot(''); toast('Sesión cerrada'); };
+    userEl.onclick=()=>openProfile(user.email);
+    btn.textContent='Mi cuenta';
+    btn.onclick=()=>openProfile(user.email);
     if(hero) hero.classList.add('hidden');
   } else {
     userEl.textContent='';
@@ -1109,6 +1143,28 @@ function updateAuthUI(user){
     btn.onclick=()=>document.getElementById('authModal').classList.remove('hidden');
     setSyncDot('');
     if(hero) hero.classList.remove('hidden');
+  }
+}
+
+function openProfile(email){
+  document.getElementById('profileEmail').textContent=email;
+  document.getElementById('profileInfo').classList.remove('hidden');
+  document.getElementById('profileConfirm').classList.add('hidden');
+  document.getElementById('profileModal').classList.remove('hidden');
+}
+
+async function deleteAccount(){
+  const btn=document.getElementById('profileDeleteConfirm');
+  btn.textContent='Eliminando…'; btn.disabled=true;
+  try{
+    await supa.rpc('delete_own_account');
+    await supa.auth.signOut();
+    document.getElementById('profileModal').classList.add('hidden');
+    updateAuthUI(null);
+    toast('Cuenta eliminada');
+  }catch(e){
+    btn.textContent='Sí, eliminar mi cuenta'; btn.disabled=false;
+    toast('Error al eliminar la cuenta');
   }
 }
 
@@ -1251,6 +1307,12 @@ async function boot(){
   buildTabs();
   renderGroups();
   document.getElementById("heroCta").addEventListener('click',()=>{ setAuthMode('signup'); document.getElementById('authModal').classList.remove('hidden'); });
+  document.getElementById("profileClose").addEventListener('click',()=>document.getElementById('profileModal').classList.add('hidden'));
+  document.getElementById("profileModal").addEventListener('click',e=>{ if(e.target===document.getElementById('profileModal')) document.getElementById('profileModal').classList.add('hidden'); });
+  document.getElementById("profileLogout").addEventListener('click',async()=>{ await supa.auth.signOut(); document.getElementById('profileModal').classList.add('hidden'); updateAuthUI(null); setSyncDot(''); toast('Sesión cerrada'); });
+  document.getElementById("profileDeleteBtn").addEventListener('click',()=>{ document.getElementById('profileInfo').classList.add('hidden'); document.getElementById('profileConfirm').classList.remove('hidden'); });
+  document.getElementById("profileDeleteCancel").addEventListener('click',()=>{ document.getElementById('profileInfo').classList.remove('hidden'); document.getElementById('profileConfirm').classList.add('hidden'); });
+  document.getElementById("profileDeleteConfirm").addEventListener('click',deleteAccount);
   document.getElementById("authSend").addEventListener('click',submitAuth);
   document.getElementById("authToggle").addEventListener('click',()=>setAuthMode(authMode==='signup'?'login':authMode==='reset'?'login':'signup'));
   document.getElementById("authForgot").addEventListener('click',()=>setAuthMode('reset'));
