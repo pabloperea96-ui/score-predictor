@@ -658,6 +658,10 @@
 <script>
 /* ----------------------------------------------------------------
    SUPABASE
+   SUPA_KEY es el anon key: PÚBLICO por diseño. Debe vivir en el cliente para
+   conectarse a Supabase. La seguridad la dan las políticas RLS de la base de
+   datos, no ocultar esta key. El único secreto real (FDORG_KEY) vive en la
+   Edge Function 'live-matches' como secret de Supabase.
 -----------------------------------------------------------------*/
 const SUPA_URL="https://suflqddswzsxuioutczm.supabase.co";
 const SUPA_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN1ZmxxZGRzd3pzeHVpb3V0Y3ptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzNjQ3OTAsImV4cCI6MjA5Njk0MDc5MH0.axm3yZL04kQ3o2UcG0DnjGIUKbrEgFKanNMGVqmffxA";
@@ -712,9 +716,8 @@ const PLAYED = {
 
 const DEFAULTS = { base:1.30, sens:0.0016, hfa:65, alt:35 };
 
-// Auto-fetch de resultados — football-data.org free tier
-// Registrarse en football-data.org para obtener la clave
-const FDORG_KEY = "675b7631c0194250bec8b7cfd281a3ff";
+// Auto-fetch de resultados — football-data.org vía Edge Function 'live-matches'
+// La API key vive como secret FDORG_KEY en Supabase, nunca en el cliente
 
 // Overrides de TLA: código que devuelve la API → código que usamos en TEAMS
 // Completar si algún equipo no se mapea correctamente al comparar con la respuesta de la API
@@ -722,6 +725,7 @@ const TLA_MAP = {
   "IRI":"IRN", // Irán (algunas plataformas usan IRI en lugar de IRN)
   "DRC":"COD", // RD Congo
   "HAI":"HAI",
+  "URY":"URU", // Uruguay (la API usa URY, nosotros URU)
 };
 
 // Bracket Round of 32 — FIFA WC 2026
@@ -939,9 +943,10 @@ function matchHTML(g,pi){
   const oc=outcome(m.actA,m.actB);
   const pick=modelPick(mo);
   const yourOc=outcome(m.predA,m.predB);
-  const isLive=m.status==='IN_PLAY'||m.status==='PAUSED';
+  const isLive=['IN_PLAY','PAUSED','EXTRA_TIME','PENALTY_SHOOTOUT'].includes(m.status);
   const isDone=oc!==null;
-  const isLocked=!isDone&&!isLive&&m.kickoff&&Date.now()>=m.kickoff-10*60*1000;
+  // Lock por tiempo: si faltan ≤10min o el partido ya empezó — independiente del status de la API
+  const isLocked=!isDone&&m.kickoff&&Date.now()>=m.kickoff-10*60*1000;
   const disagree=!isDone&&!isLive&&!isLocked&&yourOc&&(yourOc!==pick);
 
   const venSel=`<select class="venuepick" data-venue="${id}">
@@ -1230,6 +1235,22 @@ function bannerHTML(){
         const predTxt=m.predA!==''?`${m.predA}–${m.predB}`:'Sin pronóstico';
         return `<div class="dash-banner dash-banner-live">
           <div class="dbanner-label">${liveLabel}${minTxt}</div>
+          <div class="dbanner-teams">${flag(ta[1])} ${ta[0]} <span class="dbanner-vs">vs</span> ${tb[0]} ${flag(tb[1])}</div>
+          <div class="dbanner-pred">Tu pronóstico: <strong>${predTxt}</strong></div>
+        </div>`;
+      }
+    }
+  }
+  // Fallback: kickoff pasado, sin resultado y sin status de la API → partido probablemente en curso
+  for(const g of GROUP_LETTERS){
+    for(let pi=0;pi<PAIRINGS.length;pi++){
+      const id=matchId(g,pi), m=STATE.matches[id];
+      const done=m.actA!==null&&m.actA!==undefined&&m.actA!=='';
+      if(!done&&m.kickoff&&Date.now()>=m.kickoff&&m.status!=='FINISHED'){
+        const ta=TEAMS[g][PAIRINGS[pi][0]], tb=TEAMS[g][PAIRINGS[pi][1]];
+        const predTxt=m.predA!==''?`${m.predA}–${m.predB}`:'Sin pronóstico';
+        return `<div class="dash-banner dash-banner-live">
+          <div class="dbanner-label"><span class="live-dot"></span> EN CURSO</div>
           <div class="dbanner-teams">${flag(ta[1])} ${ta[0]} <span class="dbanner-vs">vs</span> ${tb[0]} ${flag(tb[1])}</div>
           <div class="dbanner-pred">Tu pronóstico: <strong>${predTxt}</strong></div>
         </div>`;
@@ -1610,7 +1631,25 @@ async function submitAuth(){
 
 function applyCloudState(cloud){
   STATE.rating={...cloud.rating}; STATE.adj={...cloud.adj};
-  STATE.matches=cloud.matches||{}; STATE.settings={...DEFAULTS,...(cloud.settings||{})};
+  // Merge: la nube es dueña de los campos del usuario (predA/predB/predConfirmed/venue/alt).
+  // Los campos objetivos (status/minute/kickoff/actA/actB) vienen de la API/PLAYED y no se pisan
+  // con la nube; se preservan los de la sesión actual cuando existen (?? deja que la API gane).
+  const merged={...(cloud.matches||{})};
+  for(const id in merged){
+    const cur=STATE.matches[id];
+    if(cur){
+      merged[id]={
+        ...merged[id],
+        status:  cur.status  ?? merged[id].status,
+        minute:  cur.minute  ?? merged[id].minute,
+        kickoff: cur.kickoff ?? merged[id].kickoff,
+        actA:    cur.actA    ?? merged[id].actA,
+        actB:    cur.actB    ?? merged[id].actB,
+      };
+    }
+  }
+  STATE.matches=merged;
+  STATE.settings={...DEFAULTS,...(cloud.settings||{})};
   STATE.collapsed=cloud.collapsed||{};
   Store.set("wc26",JSON.stringify(STATE));
   seedState(); renderGroups(); refreshDashIfOpen(); refreshLlavesIfOpen();
@@ -1666,13 +1705,11 @@ async function changePassword(){
    AUTO-FETCH DE RESULTADOS (football-data.org)
 -----------------------------------------------------------------*/
 async function fetchLiveResults(){
-  if(!FDORG_KEY||FDORG_KEY==="TU_API_KEY_AQUI") return;
   try{
-    const res=await fetch("https://api.football-data.org/v4/competitions/WC/matches?stage=GROUP_STAGE",{
-      headers:{"X-Auth-Token":FDORG_KEY}
-    });
-    if(!res.ok) return;
-    const json=await res.json();
+    // Llama al proxy server-side (Edge Function) — la key vive en el servidor, sin CORS
+    const {data:json,error}=await supa.functions.invoke('live-matches');
+    if(error){ console.warn('[xG26] proxy error:',error); return; }
+    if(!json||!json.matches){ console.warn('[xG26] respuesta sin matches:',json); return; }
 
     // Índice inverso: código → {group, pos}
     const codeIndex={};
