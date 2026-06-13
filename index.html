@@ -1187,11 +1187,16 @@ async function submitAuth(){
   if(authMode==='login'){
     ({error}=await supa.auth.signInWithPassword({email,password:pass}));
   } else {
-    ({error}=await supa.auth.signUp({email,password:pass}));
-    if(!error){ toast('Cuenta creada — ya puedes usar la app'); document.getElementById('authModal').classList.add('hidden'); btn.disabled=false; setAuthMode('login'); return; }
+    let data;
+    ({data,error}=await supa.auth.signUp({email,password:pass}));
+    if(!error){
+      const isDuplicate=!data?.user?.identities||data.user.identities.length===0;
+      if(isDuplicate){ toast('Este email ya tiene una cuenta — inicia sesión'); btn.disabled=false; setAuthMode('login'); return; }
+      toast('Cuenta creada — ya puedes usar la app'); document.getElementById('authModal').classList.add('hidden'); btn.disabled=false; setAuthMode('login'); return;
+    }
   }
   btn.disabled=false; setAuthMode(authMode);
-  if(error){ toast(error.message==='Invalid login credentials'?'Email o contraseña incorrectos':error.message); }
+  if(error){ toast(error.message==='Invalid login credentials'?'Email o contraseña incorrectos':error.message==='User already registered'?'Este email ya tiene una cuenta — inicia sesión':error.message); }
   else { document.getElementById('authModal').classList.add('hidden'); }
 }
 
