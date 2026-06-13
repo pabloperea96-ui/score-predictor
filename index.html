@@ -386,10 +386,12 @@
 
 <div class="auth-overlay hidden" id="authModal">
   <div class="auth-card">
-    <h3>Sincronizar dispositivos</h3>
-    <p>Ingresá tu email y te enviamos un enlace para iniciar sesión en cualquier dispositivo.</p>
+    <h3 id="authTitle">Iniciar sesión</h3>
+    <p id="authDesc">Ingresá tu email y contraseña para sincronizar tus pronósticos entre dispositivos.</p>
     <input class="auth-input" type="email" id="authEmail" placeholder="tu@email.com" autocomplete="email">
-    <button class="btn auth-btn" id="authSend">Enviar enlace mágico</button>
+    <input class="auth-input" type="password" id="authPass" placeholder="Contraseña" autocomplete="current-password">
+    <button class="btn auth-btn" id="authSend">Iniciar sesión</button>
+    <span class="auth-link" id="authToggle">¿Primera vez? Crear cuenta</span>
     <span class="auth-link" id="authClose">Cancelar</span>
   </div>
 </div>
@@ -1057,15 +1059,35 @@ function updateAuthUI(user){
   }
 }
 
-async function sendMagicLink(){
+let authMode='login';
+function setAuthMode(mode){
+  authMode=mode;
+  const isLogin=mode==='login';
+  document.getElementById('authTitle').textContent=isLogin?'Iniciar sesión':'Crear cuenta';
+  document.getElementById('authDesc').textContent=isLogin
+    ?'Ingresá tu email y contraseña para sincronizar tus pronósticos entre dispositivos.'
+    :'Creá una cuenta para sincronizar tus pronósticos entre dispositivos.';
+  document.getElementById('authSend').textContent=isLogin?'Iniciar sesión':'Crear cuenta';
+  document.getElementById('authToggle').textContent=isLogin?'¿Primera vez? Crear cuenta':'¿Ya tenés cuenta? Iniciar sesión';
+  document.getElementById('authPass').autocomplete=isLogin?'current-password':'new-password';
+}
+
+async function submitAuth(){
   const email=document.getElementById('authEmail').value.trim();
-  if(!email) return;
-  const sendBtn=document.getElementById('authSend');
-  sendBtn.textContent='Enviando…'; sendBtn.disabled=true;
-  const {error}=await supa.auth.signInWithOtp({email,options:{emailRedirectTo:window.location.href}});
-  sendBtn.disabled=false; sendBtn.textContent='Enviar enlace mágico';
-  if(error){ toast('Error: '+error.message); }
-  else { toast('Enlace enviado — revisá tu email'); document.getElementById('authModal').classList.add('hidden'); }
+  const pass=document.getElementById('authPass').value;
+  if(!email||!pass){ toast('Completá email y contraseña'); return; }
+  const btn=document.getElementById('authSend');
+  btn.textContent='…'; btn.disabled=true;
+  let error;
+  if(authMode==='login'){
+    ({error}=await supa.auth.signInWithPassword({email,password:pass}));
+  } else {
+    ({error}=await supa.auth.signUp({email,password:pass}));
+    if(!error){ toast('Cuenta creada — ya podés usar la app'); document.getElementById('authModal').classList.add('hidden'); btn.disabled=false; setAuthMode('login'); return; }
+  }
+  btn.disabled=false; setAuthMode(authMode);
+  if(error){ toast(error.message==='Invalid login credentials'?'Email o contraseña incorrectos':error.message); }
+  else { document.getElementById('authModal').classList.add('hidden'); }
 }
 
 function applyCloudState(cloud){
@@ -1129,9 +1151,10 @@ async function boot(){
   document.getElementById("btnExport").addEventListener('click',exportJSON);
   document.getElementById("btnImport").addEventListener('click',()=>document.getElementById("fileImport").click());
   document.getElementById("fileImport").addEventListener('change',e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); e.target.value=""; });
-  document.getElementById("authSend").addEventListener('click',sendMagicLink);
+  document.getElementById("authSend").addEventListener('click',submitAuth);
+  document.getElementById("authToggle").addEventListener('click',()=>setAuthMode(authMode==='login'?'signup':'login'));
   document.getElementById("authClose").addEventListener('click',()=>document.getElementById('authModal').classList.add('hidden'));
-  document.getElementById("authEmail").addEventListener('keydown',e=>{ if(e.key==='Enter') sendMagicLink(); });
+  document.getElementById("authPass").addEventListener('keydown',e=>{ if(e.key==='Enter') submitAuth(); });
 
   // 2. Verifica sesión existente
   const {data:{user}}=await supa.auth.getUser();
