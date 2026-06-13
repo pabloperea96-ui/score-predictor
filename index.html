@@ -69,6 +69,9 @@
   a{color:var(--loss)}
   .wrap{max-width:1120px;margin:0 auto;padding:0 16px calc(80px + env(safe-area-inset-bottom))}
 
+  /* Barra superior: masthead + tabs pegados juntos (un solo sticky) */
+  .topbar{position:sticky;top:0;z-index:var(--z-mast)}
+
   /* Masthead */
   header.mast{
     border-bottom:1px solid rgba(255,255,255,0.12);
@@ -76,7 +79,6 @@
     backdrop-filter:blur(48px) saturate(1.8);
     -webkit-backdrop-filter:blur(48px) saturate(1.8);
     box-shadow:0 1px 0 rgba(255,255,255,0.10),0 4px 32px rgba(0,0,0,0.6);
-    position:sticky;top:0;z-index:30;
   }
   .mast-in{
     max-width:1120px;margin:0 auto;
@@ -110,7 +112,7 @@
     background:rgba(6,10,15,0.5);
     backdrop-filter:blur(32px);
     -webkit-backdrop-filter:blur(32px);
-    position:sticky;top:calc(env(safe-area-inset-top) + 56px);z-index:20;overflow-x:auto;
+    overflow-x:auto;
     padding-left:max(16px,env(safe-area-inset-left));
     padding-right:max(16px,env(safe-area-inset-right));
     max-width:1120px;margin:0 auto;
@@ -175,7 +177,8 @@
   .group--collapsed .group-body{max-height:0}
 
   /* Standings */
-  .stand-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .stand-scroll{position:relative}
+  .stand-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
   table.stand{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
   table.stand th{
     font-family:var(--sans);font-size:12px;letter-spacing:0;text-transform:none;color:var(--muted);
@@ -370,7 +373,6 @@
     .probbar,.problbl{max-width:100%}
     .mteam.away{text-align:left;align-items:flex-start}
     .mteam.away .row{flex-direction:row}
-    nav.tabs{top:calc(env(safe-area-inset-top) + 56px)}
     .ctl{grid-template-columns:1fr 64px;grid-template-areas:"lab val" "rng rng"}
     .ctl label{grid-area:lab}.ctl .val{grid-area:val}.ctl input{grid-area:rng}
     .hero-letter{font-size:40px}
@@ -378,13 +380,30 @@
     .bracket-wrap{grid-template-columns:1fr}
     .sc{width:48px;min-height:48px;font-size:20px}
     .mteam{padding:16px}
-    /* Densidad de standings: ocultar G/E/P y reducir nombre en móvil */
-    table.stand th:nth-child(3),table.stand td:nth-child(3),
-    table.stand th:nth-child(4),table.stand td:nth-child(4),
-    table.stand th:nth-child(5),table.stand td:nth-child(5){display:none}
+    /* Standings: todas las columnas, más compactas, con scroll horizontal */
     table.stand th,table.stand td{padding:8px 6px}
     table.stand th.tl,table.stand td.tl{padding-left:12px}
     .tname{font-size:15px}
+    /* Afordancia de scroll: degradado pinneado en el borde derecho */
+    .stand-scroll::after{
+      content:'';position:absolute;top:0;right:0;bottom:0;width:32px;
+      background:linear-gradient(to left, rgba(10,13,18,0.9), transparent);
+      pointer-events:none;z-index:2;
+    }
+    /* Gutter lateral de página: 24px en móvil */
+    .wrap{padding-left:24px;padding-right:24px}
+    .mast-in{padding-left:24px;padding-right:24px}
+    nav.tabs{padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right))}
+    footer.foot{padding-left:24px;padding-right:24px}
+    #hero{padding-left:24px;padding-right:24px}
+    /* Hero: botones apilados a ancho completo */
+    .hero-actions{flex-direction:column}
+    .hero-actions .btn{width:100%}
+  }
+  @media(max-width:560px){
+    /* Masthead compacto: marca + acceso a cuenta, una sola fila */
+    .wordmark .ttl{display:none}
+    #authUser{display:none}
   }
   @media(max-width:374px){
     .hero-letter{font-size:32px}
@@ -409,9 +428,10 @@
     min-width:24px;height:24px;border-radius:9999px;
     display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;
   }
-  .hero-cta{font-size:15px;padding:12px 24px;min-height:48px;margin-bottom:12px;background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600;box-shadow:0 4px 20px var(--brand-glow)}
-  .hero-cta:hover{background:var(--brand-soft);border-color:var(--brand-soft);color:var(--brand-ink);box-shadow:0 6px 28px var(--brand-glow)}
-  .hero-note{font-size:12px;color:var(--faint);margin:0}
+  .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .btn.hero-cta{font-size:15px;padding:12px 24px;min-height:48px;background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600;box-shadow:0 4px 20px var(--brand-glow)}
+  .btn.hero-cta:hover{background:var(--brand-soft);border-color:var(--brand-soft);color:var(--brand-ink);box-shadow:0 6px 28px var(--brand-glow)}
+  .hero-cta-2{font-size:15px;padding:12px 24px;min-height:48px;font-weight:600}
   @media(max-width:640px){.hero-h1{font-size:28px}.hero-inner{padding:24px 20px}}
 
   /* Auth modal */
@@ -435,8 +455,8 @@
   .auth-tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:12px;padding:3px;margin-bottom:24px;background:rgba(0,0,0,0.3)}
   .auth-tab{flex:1;font-family:var(--sans);font-size:14px;font-weight:500;background:none;border:none;cursor:pointer;color:var(--muted);border-radius:9px;padding:8px;transition:.15s;text-align:center}
   .auth-tab.on{background:rgba(255,255,255,0.12);color:var(--txt);box-shadow:0 1px 4px rgba(0,0,0,0.3)}
-  .auth-btn-accent{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600}
-  .auth-btn-accent:hover{background:var(--brand-soft);border-color:var(--brand-soft);color:var(--brand-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,0.25),0 4px 16px var(--brand-glow)}
+  .btn.auth-btn-accent{background:var(--brand);color:var(--brand-ink);border-color:var(--brand);font-weight:600}
+  .btn.auth-btn-accent:hover{background:var(--brand-soft);border-color:var(--brand-soft);color:var(--brand-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,0.25),0 4px 16px var(--brand-glow)}
   .auth-hint{font-size:12px;color:var(--faint);margin:-4px 0 10px;padding:0 4px;display:block}
   .auth-success{text-align:center;padding:8px 0 8px}
   .auth-success-icon{font-size:36px;margin-bottom:12px}
@@ -549,6 +569,7 @@
 
 <a class="skip-link" href="#main">Saltar al contenido</a>
 
+<div class="topbar">
 <header class="mast">
   <div class="mast-in">
     <div class="wordmark">
@@ -566,6 +587,7 @@
 </header>
 
 <nav class="tabs" id="tabs" role="tablist" aria-label="Secciones"></nav>
+</div>
 
 <section id="hero" class="hidden">
   <div class="hero-inner">
@@ -574,10 +596,12 @@
     <div class="hero-steps">
       <div class="hero-step"><span class="hero-num">1</span><span>Revisa las probabilidades de cada partido en la pestaña <b>Grupos</b></span></div>
       <div class="hero-step"><span class="hero-num">2</span><span>Ingresa tus pronósticos de marcador antes de cada partido</span></div>
-      <div class="hero-step"><span class="hero-num">3</span><span>Carga los resultados reales y sigue tu precisión en <b>Precisión</b></span></div>
+      <div class="hero-step"><span class="hero-num">3</span><span>Carga los resultados reales y sigue tus aciertos en <b>Mis pronósticos</b></span></div>
     </div>
-    <button class="btn hero-cta" id="heroCta">Crear cuenta para sincronizar</button>
-    <p class="hero-note">También puedes usar la app sin cuenta — los datos se guardan en este navegador.</p>
+    <div class="hero-actions">
+      <button class="btn hero-cta" id="heroCta">Crear cuenta</button>
+      <button class="btn hero-cta-2" id="heroLogin">Iniciar sesión</button>
+    </div>
   </div>
 </section>
 
@@ -984,7 +1008,7 @@ function renderGroups(){
         </div>
       </div>
       <div class="group-body">
-        <div class="stand-wrap"><table class="stand">
+        <div class="stand-scroll"><div class="stand-wrap"><table class="stand">
           <thead><tr>
             <th class="tl">Equipo</th><th>PJ</th><th>G</th><th>E</th><th>P</th>
             <th>GF</th><th>GC</th><th>DG</th><th>Pts</th>
@@ -1002,7 +1026,7 @@ function renderGroups(){
         <td><input class="miniinput" inputmode="numeric" data-adj="${r.code}" value="${STATE.adj[r.code]}"></td>
       </tr>`;
     });
-    html+=`</tbody></table></div><div class="matches">`;
+    html+=`</tbody></table></div></div><div class="matches">`;
     PAIRINGS.forEach((pr,pi)=>{ html+=matchHTML(g,pi); });
     html+=`</div></div></div>`;
   }
@@ -1875,6 +1899,7 @@ async function boot(){
   renderGroups();
   switchTab(TABS[0][0]);
   document.getElementById("heroCta").addEventListener('click',()=>{ setAuthMode('signup'); document.getElementById('authModal').classList.remove('hidden'); });
+  document.getElementById("heroLogin").addEventListener('click',()=>{ setAuthMode('login'); document.getElementById('authModal').classList.remove('hidden'); });
   document.getElementById("profileClose").addEventListener('click',()=>document.getElementById('profileModal').classList.add('hidden'));
   document.getElementById("profileModal").addEventListener('click',e=>{ if(e.target===document.getElementById('profileModal')) document.getElementById('profileModal').classList.add('hidden'); });
   document.getElementById("profileLogout").addEventListener('click',async()=>{ await supa.auth.signOut(); document.getElementById('profileModal').classList.add('hidden'); updateAuthUI(null); setSyncDot(''); toast('Sesión cerrada'); });
