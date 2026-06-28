@@ -280,17 +280,45 @@
   .alttoggle{font-family:var(--sans);font-size:12px;color:var(--faint);cursor:pointer;user-select:none}
   .alttoggle.on{color:var(--draw)}
 
-  /* ── Bracket / Llaves ────────────────────────────────────────── */
-  .bracket-section{margin-bottom:32px}
-  .bracket-section-head{
-    font-family:var(--display);font-size:32px;font-weight:700;color:var(--txt);
-    letter-spacing:-1px;margin:0 0 16px;
+  /* ── Bracket / Llaves — árbol eliminatorio ───────────────────── */
+  .ko-tree{display:flex;align-items:stretch;overflow-x:auto;padding:8px 0 24px}
+  .ko-col{display:flex;flex-direction:column;flex:0 0 264px;padding-right:48px}
+  .ko-col--last{flex-basis:264px;padding-right:0}
+  .ko-col-head{
+    font-family:var(--mono);font-size:12px;letter-spacing:1px;text-transform:uppercase;
+    color:var(--muted);margin:0 0 16px;padding-left:2px;
   }
-  .bracket-wrap{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(312px,1fr));
-    gap:8px;
+  .ko-col-body{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:16px}
+  .ko-pair{position:relative;display:flex;flex-direction:column;justify-content:space-around;flex:1;gap:16px}
+  /* conector en codo: une el par y lleva una línea al cruce de la ronda siguiente */
+  .ko-col:not(.ko-col--last) .ko-pair::after{
+    content:"";position:absolute;left:100%;top:25%;bottom:25%;width:24px;
+    border:2px solid var(--border);border-left:none;border-radius:0 8px 8px 0;
   }
+  .ko-col:not(.ko-col--last) .ko-pair::before{
+    content:"";position:absolute;left:calc(100% + 24px);top:50%;width:24px;height:2px;background:var(--border);
+  }
+  .ko-match{display:flex;flex-direction:column;justify-content:center}
+  .ko-third{margin:24px 0 8px;max-width:264px}
+  .ko-card.disagree{border-color:var(--warn,#e0a44a)}
+  .ko-center{
+    padding:6px 12px;background:rgba(0,0,0,0.22);
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    display:flex;flex-direction:column;align-items:center;gap:6px;min-height:58px;justify-content:center;
+  }
+  .ko-center .probbar,.ko-center .problbl{max-width:100%}
+  .ko-pred{display:flex;align-items:center;justify-content:center;gap:6px}
+  .ko-pred .sc{width:34px}
+  .ko-save-btn{max-width:none;width:auto;padding:6px 14px;margin:6px 0 0}
+  .ko-save-btn:disabled{opacity:0.4;cursor:not-allowed}
+  .ko-pred-saved{display:flex;align-items:center;gap:8px}
+  .ko-pred-val{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--txt)}
+  .r32-team.ko-win{background:rgba(251,106,58,0.12)}
+  .r32-team.ko-win .r32-name{font-weight:700}
+  .r32-team.ko-win .ko-score{color:var(--accent,#fb6a3a)}
+  .r32-team.ko-lose{opacity:0.5}
+  .ko-score{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--txt);flex-shrink:0;display:flex;align-items:baseline;gap:3px}
+  .ko-pen-row{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--muted)}
   .r32-card{
     border:1px solid rgba(255,255,255,0.13);border-radius:16px;
     background:rgba(255,255,255,0.05);overflow:hidden;
@@ -308,13 +336,6 @@
   .r32-name{font-size:15px;font-weight:500;flex:1}
   .r32-pts{font-family:var(--mono);font-size:12px;color:var(--muted);flex-shrink:0}
   .r32-placeholder{font-size:14px;color:var(--faint);font-style:italic;flex:1}
-  .r32-center{
-    padding:8px 16px;background:rgba(0,0,0,0.22);
-    border-bottom:1px solid rgba(255,255,255,0.08);
-    display:flex;flex-direction:column;align-items:center;gap:8px;
-  }
-  .r32-center .probbar{max-width:100%}
-  .r32-center .problbl{max-width:100%}
   .r32-vs{
     text-align:center;font-family:var(--mono);font-size:12px;
     color:var(--faint);padding:0;width:100%;
@@ -379,8 +400,8 @@
     .ctl{grid-template-columns:1fr 64px;grid-template-areas:"lab val" "rng rng"}
     .ctl label{grid-area:lab}.ctl .val{grid-area:val}.ctl input{grid-area:rng}
     .hero-letter{font-size:40px}
-    .bracket-section-head{font-size:24px}
-    .bracket-wrap{grid-template-columns:1fr}
+    .ko-col{flex-basis:230px;padding-right:40px}
+    .ko-pred .sc{width:40px;min-height:40px;font-size:18px}
     .sc{width:48px;min-height:48px;font-size:20px}
     .mteam{padding:16px}
     /* Standings: todas las columnas, más compactas, con scroll horizontal */
@@ -817,6 +838,14 @@ const PLAYED = {
   "A:0":[2,0],"A:1":[2,1],"B:0":[1,1],"D:0":[4,1]
 };
 
+// Resultados reales de eliminatorias — clave = nº de partido oficial (73–104)
+// El marcador es el de FIN DE PRÓRROGA (sin penales). Formatos:
+//   "74":[a,b]              → decisivo en 90'/prórroga
+//   "74":[a,b,"A"|"B"]      → empate tras prórroga, avanza ese lado por penales
+//   "74":[a,b,"A",penA,penB]→ además marcador de la tanda (se muestra entre paréntesis)
+const KO_PLAYED = {
+};
+
 const DEFAULTS = { base:1.30, sens:0.0016, hfa:65, alt:35 };
 
 // Auto-fetch de resultados — football-data.org vía Edge Function 'live-matches'
@@ -831,39 +860,55 @@ const TLA_MAP = {
   "URY":"URU", // Uruguay (la API usa URY, nosotros URU)
 };
 
-// Bracket Round of 32 — FIFA WC 2026
-// Estructura: 12 ganadores × 12 runners-up × 8 mejores terceros = 32 equipos
-// Cuadrantes A-C: ganador vs runner-up de grupos distintos
-// Cuadrante D: runners restantes + mejores terceros
-// TODO: verificar contra el bracket oficial FIFA antes de la R32
-const R32_BRACKET = [
-  // ── Cuadrante A ──────────────────────────────────────────────
-  {id:"R32-1",  a:{type:"winner",group:"A"}, b:{type:"runner",group:"B"}},
-  {id:"R32-2",  a:{type:"winner",group:"C"}, b:{type:"runner",group:"D"}},
-  {id:"R32-3",  a:{type:"winner",group:"B"}, b:{type:"best3rd",rank:0}},
-  {id:"R32-4",  a:{type:"winner",group:"D"}, b:{type:"best3rd",rank:1}},
-  // ── Cuadrante B ──────────────────────────────────────────────
-  {id:"R32-5",  a:{type:"winner",group:"E"}, b:{type:"runner",group:"F"}},
-  {id:"R32-6",  a:{type:"winner",group:"G"}, b:{type:"runner",group:"H"}},
-  {id:"R32-7",  a:{type:"winner",group:"F"}, b:{type:"best3rd",rank:2}},
-  {id:"R32-8",  a:{type:"winner",group:"H"}, b:{type:"best3rd",rank:3}},
-  // ── Cuadrante C ──────────────────────────────────────────────
-  {id:"R32-9",  a:{type:"winner",group:"I"}, b:{type:"runner",group:"J"}},
-  {id:"R32-10", a:{type:"winner",group:"K"}, b:{type:"runner",group:"L"}},
-  {id:"R32-11", a:{type:"winner",group:"J"}, b:{type:"best3rd",rank:4}},
-  {id:"R32-12", a:{type:"winner",group:"L"}, b:{type:"best3rd",rank:5}},
-  // ── Cuadrante D — runners restantes + mejores terceros ───────
-  {id:"R32-13", a:{type:"runner",group:"A"}, b:{type:"best3rd",rank:6}},
-  {id:"R32-14", a:{type:"runner",group:"C"}, b:{type:"best3rd",rank:7}},
-  {id:"R32-15", a:{type:"runner",group:"E"}, b:{type:"runner",group:"I"}},
-  {id:"R32-16", a:{type:"runner",group:"G"}, b:{type:"runner",group:"K"}},
+// Cuadro eliminatorio — FIFA WC 2026 (oficial, partidos 73–104)
+// Verificado contra Wikipedia "2026 FIFA World Cup knockout stage" + agregadores.
+// R32: equipos REALES fijos (refleja el cuadro oficial, no se derivan de los grupos de la app).
+// Rondas posteriores: {src:n} = ganador real del partido n · {srcLoser:n} = perdedor real.
+const KO_R32 = [
+  {id:73, a:{code:"RSA"}, b:{code:"CAN"}},
+  {id:74, a:{code:"GER"}, b:{code:"PAR"}},
+  {id:75, a:{code:"NED"}, b:{code:"MAR"}},
+  {id:76, a:{code:"BRA"}, b:{code:"JPN"}},
+  {id:77, a:{code:"FRA"}, b:{code:"SWE"}},
+  {id:78, a:{code:"CIV"}, b:{code:"NOR"}},
+  {id:79, a:{code:"MEX"}, b:{code:"ECU"}},
+  {id:80, a:{code:"ENG"}, b:{code:"COD"}},
+  {id:81, a:{code:"USA"}, b:{code:"BIH"}},
+  {id:82, a:{code:"BEL"}, b:{code:"SEN"}},
+  {id:83, a:{code:"POR"}, b:{code:"CRO"}},
+  {id:84, a:{code:"ESP"}, b:{code:"AUT"}},
+  {id:85, a:{code:"SUI"}, b:{code:"ALG"}},
+  {id:86, a:{code:"ARG"}, b:{code:"CPV"}},
+  {id:87, a:{code:"COL"}, b:{code:"GHA"}},
+  {id:88, a:{code:"AUS"}, b:{code:"EGY"}},
 ];
+const KO_R16 = [
+  {id:89, a:{src:74}, b:{src:77}}, {id:90, a:{src:73}, b:{src:75}},
+  {id:91, a:{src:76}, b:{src:78}}, {id:92, a:{src:79}, b:{src:80}},
+  {id:93, a:{src:83}, b:{src:84}}, {id:94, a:{src:81}, b:{src:82}},
+  {id:95, a:{src:86}, b:{src:88}}, {id:96, a:{src:85}, b:{src:87}},
+];
+const KO_QF = [
+  {id:97, a:{src:89}, b:{src:90}}, {id:98, a:{src:93}, b:{src:94}},
+  {id:99, a:{src:91}, b:{src:92}}, {id:100, a:{src:95}, b:{src:96}},
+];
+const KO_SF = [
+  {id:101, a:{src:97}, b:{src:98}}, {id:102, a:{src:99}, b:{src:100}},
+];
+const KO_THIRD = {id:103, a:{srcLoser:101}, b:{srcLoser:102}};
+const KO_FINAL = {id:104, a:{src:101}, b:{src:102}};
 
-const BRACKET_SECTIONS=[
-  {label:"Cuadrante A", ids:["R32-1","R32-2","R32-3","R32-4"]},
-  {label:"Cuadrante B", ids:["R32-5","R32-6","R32-7","R32-8"]},
-  {label:"Cuadrante C", ids:["R32-9","R32-10","R32-11","R32-12"]},
-  {label:"Cuadrante D", ids:["R32-13","R32-14","R32-15","R32-16"]},
+// Todos los cruces indexados por id, para resolución recursiva y fetch
+const KO_ALL = [...KO_R32,...KO_R16,...KO_QF,...KO_SF,KO_THIRD,KO_FINAL];
+const KO_BY_ID = Object.fromEntries(KO_ALL.map(m=>[m.id,m]));
+
+// Columnas del árbol — orden top→bottom para que los conectores queden limpios
+const KO_ROUNDS = [
+  {key:"r32",  label:"R16", ids:[74,77,73,75,83,84,81,82,76,78,79,80,86,88,85,87]},
+  {key:"r16",  label:"R8",  ids:[89,90,93,94,91,92,95,96]},
+  {key:"qf",   label:"QF",  ids:[97,98,99,100]},
+  {key:"sf",   label:"SF",  ids:[101,102]},
+  {key:"final",label:"Final", ids:[104]},
 ];
 
 /* ----------------------------------------------------------------
@@ -898,6 +943,24 @@ function seedState(){
       else { m.actA ??= ""; m.actB ??= ""; }
     });
   }
+  // Partidos eliminatorios (73–104)
+  KO_ALL.forEach(def=>{
+    const id="KO:"+def.id;
+    STATE.matches[id] ??= {};
+    const m=STATE.matches[id];
+    m.predA ??= ""; m.predB ??= "";
+    m.predConfirmed ??= (m.predA!==''&&m.predB!=='');
+    m.advance ??= null;
+    m.penA ??= null; m.penB ??= null;
+    m.status ??= null; m.minute ??= null; m.kickoff ??= null;
+    const pl=KO_PLAYED[def.id];
+    if(pl){
+      m.actA ??= pl[0]; m.actB ??= pl[1];
+      if(pl[2]) m.advance ??= pl[2];
+      if(pl[3]!=null) m.penA ??= pl[3];
+      if(pl[4]!=null) m.penB ??= pl[4];
+    } else { m.actA ??= ""; m.actB ??= ""; }
+  });
 }
 
 /* ----------------------------------------------------------------
@@ -975,11 +1038,89 @@ function isSlotConfirmed(slot){
   return false;
 }
 
+function teamName(code){ const t=teamByCode(code); return t?t[0]:code; }
+
+// Describe el cruce del partido n para placeholders: nombres si el rival ya está
+// definido por resultado real (o es R32 fija); si no, expande a los códigos de los
+// alimentadores. Ej: 74 → "Alemania–Paraguay"; 89 → "GER/PAR – FRA/SWE".
+function koSideLabel(slot,top){
+  if(slot.code!=null) return top?teamName(slot.code):slot.code;
+  const ref = slot.src!=null?slot.src : slot.srcLoser!=null?slot.srcLoser : null;
+  if(ref==null) return '—';
+  const team = slot.src!=null?resolveKOWinner(ref):resolveKOLoser(ref);
+  if(team) return top?team.name:team.code;
+  const d=KO_BY_ID[ref];
+  return koSideLabel(d.a,false)+'/'+koSideLabel(d.b,false);
+}
+function trimSide(s){ // acota a 2 códigos + … en rondas profundas
+  if(!s.includes('/')) return s;
+  const p=s.split('/');
+  return p.length>2 ? p.slice(0,2).join('/')+'/…' : s;
+}
+function matchupLabel(n){
+  const def=KO_BY_ID[n];
+  const a=trimSide(koSideLabel(def.a,true)), b=trimSide(koSideLabel(def.b,true));
+  const sep=(a.includes('/')||b.includes('/'))?' – ':'–';
+  return a+sep+b;
+}
+
 function slotLabel(slot){
+  if(slot.code!=null) return teamName(slot.code);
   if(slot.type==='winner') return `1.º Grupo ${slot.group}`;
   if(slot.type==='runner') return `2.º Grupo ${slot.group}`;
   if(slot.type==='best3rd') return `Mejor 3.º #${slot.rank+1}`;
+  if(slot.src!=null) return `Ganador de ${matchupLabel(slot.src)}`;
+  if(slot.srcLoser!=null) return `Perdedor de ${matchupLabel(slot.srcLoser)}`;
   return '—';
+}
+
+/* ----------------------------------------------------------------
+   LÓGICA ELIMINATORIA (Octavos → Final)
+   El avance lo determina el RESULTADO REAL, nunca el pronóstico.
+-----------------------------------------------------------------*/
+function koRec(id){ return STATE.matches["KO:"+id]; }
+
+// Resuelve el slot de un cruce a una fila de equipo (o null si aún indeterminado)
+function resolveKOSlot(slot){
+  if(slot.code!=null){ const t=teamByCode(slot.code); return t?{code:t[1],name:t[0]}:null; }
+  if(slot.type) return resolveSlot(slot);            // (legacy) desde grupos
+  if(slot.src!=null) return resolveKOWinner(slot.src);
+  if(slot.srcLoser!=null) return resolveKOLoser(slot.srcLoser);
+  return null;
+}
+function resolveKOTeams(def){
+  return { teamA:resolveKOSlot(def.a), teamB:resolveKOSlot(def.b) };
+}
+
+// Lado avanzado de un cruce a partir del resultado real: 'A' | 'B' | null
+function koAdvancer(id){
+  const m=koRec(id); if(!m) return null;
+  if(m.actA===""||m.actB===""||m.actA==null||m.actB==null) return null;
+  const a=+m.actA, b=+m.actB;
+  if(a>b) return 'A';
+  if(b>a) return 'B';
+  return (m.advance==='A'||m.advance==='B') ? m.advance : null; // empate tras prórroga → desempate por penales
+}
+function resolveKOWinner(id){
+  const def=KO_BY_ID[id]; if(!def) return null;
+  const side=koAdvancer(id); if(!side) return null;
+  const {teamA,teamB}=resolveKOTeams(def);
+  return side==='A'?teamA:teamB;
+}
+function resolveKOLoser(id){
+  const def=KO_BY_ID[id]; if(!def) return null;
+  const side=koAdvancer(id); if(!side) return null;
+  const {teamA,teamB}=resolveKOTeams(def);
+  return side==='A'?teamB:teamA;
+}
+// Un cruce está confirmado (decidido) cuando tiene avanzado real → gobierna el ghost aguas abajo
+function isKOConfirmed(id){ return koAdvancer(id)!=null; }
+function isKOSlotConfirmed(slot){
+  if(slot.code!=null) return true;                   // R32: equipo fijo, siempre confirmado
+  if(slot.type) return isSlotConfirmed(slot);
+  if(slot.src!=null) return isKOConfirmed(slot.src);
+  if(slot.srcLoser!=null) return isKOConfirmed(slot.srcLoser);
+  return false;
 }
 
 /* ----------------------------------------------------------------
@@ -1221,82 +1362,129 @@ function clean(v){ v=v.replace(/[^0-9]/g,''); return v===""?"":Math.min(+v,20); 
 function refreshStandings(g){ renderGroups(); }
 
 /* ----------------------------------------------------------------
-   RENDER: LLAVES (Round of 32)
+   RENDER: LLAVES (cuadro eliminatorio oficial)
 -----------------------------------------------------------------*/
-function thirds8TableHTML(best8){
-  const hasData=best8.some(t=>t&&t.P>0);
-  if(!hasData){
-    return `<div class="thirds-note">Las clasificaciones de mejores terceros se actualizan conforme avanzan los partidos de grupos.</div>`;
-  }
-  let rows='';
-  best8.forEach((t,i)=>{
-    if(!t||!t.code||t.code==='—') return;
-    const rankClass=i===0?'rank-1':i<3?'rank-2':'rank-3';
-    rows+=`<tr>
-      <td><div style="display:flex;justify-content:center"><span class="rank-badge ${rankClass}">${i+1}</span></div></td>
-      <td style="font-family:var(--mono)">${t.group||'—'}</td>
-      <td><div class="teamcell"><span class="flag">${flag(t.code)}</span><span class="code">${t.code}</span><span class="tname">${t.name}</span></div></td>
-      <td>${t.Pts}</td>
-      <td>${t.GD>0?'+':''}${t.GD}</td>
-      <td>${t.GF}</td>
-    </tr>`;
-  });
-  if(!rows) return `<div class="thirds-note">Pendiente de resultados.</div>`;
-  return `<table class="ledger"><thead><tr>
-    <th style="text-align:center">#</th><th>Gr</th><th>Equipo</th><th>Pts</th><th>DG</th><th>GF</th>
-  </tr></thead><tbody>${rows}</tbody></table>`;
-}
+function koMatchHTML(def){
+  const id="KO:"+def.id;
+  const m=koRec(def.id);
+  const {teamA,teamB}=resolveKOTeams(def);
+  const confA=isKOSlotConfirmed(def.a), confB=isKOSlotConfirmed(def.b);
+  const adv=koAdvancer(def.id);                       // 'A' | 'B' | null
+  const hasScore=!(m.actA===""||m.actB===""||m.actA==null||m.actB==null);
+  const both=teamA&&teamB;
 
-function bracketMatchHTML(match){
-  const teamA=resolveSlot(match.a);
-  const teamB=resolveSlot(match.b);
-  const confirmedA=isSlotConfirmed(match.a);
-  const confirmedB=isSlotConfirmed(match.b);
+  const mo=(both&&!hasScore)?model(teamA.code,teamB.code,'N',false):null;
+  const yourOc=outcome(m.predA,m.predB);
+  const disagree=!!(mo&&m.predConfirmed&&yourOc&&yourOc!==modelPick(mo));
 
-  let centerHTML=`<div class="r32-vs">vs</div>`;
-  if(teamA&&teamB){
-    const mo=model(teamA.code,teamB.code,'N',false);
-    const pH=Math.round(mo.pH*100),pD=Math.round(mo.pD*100),pA=Math.round(mo.pA*100);
-    centerHTML=`<div class="r32-center">
-      <div class="probbar"><i class="h" style="width:${mo.pH*100}%"></i><i class="d" style="width:${mo.pD*100}%"></i><i class="a" style="width:${mo.pA*100}%"></i></div>
-      <div class="problbl"><span class="h">${pH}%</span><span class="d">${pD}% E</span><span class="a">${pA}%</span></div>
+  const hasPens=m.penA!=null&&m.penB!=null;
+  const teamRow=(t,slot,confirmed,side)=>{
+    const win=adv===side, lose=adv&&adv!==side;
+    const cls=`r32-team${side==='B'?' r32-team--b':''}${!confirmed?' r32-ghost':''}${win?' ko-win':''}${lose?' ko-lose':''}`;
+    let tail='';
+    if(t&&hasScore){
+      const g=side==='A'?m.actA:m.actB, pn=side==='A'?m.penA:m.penB;
+      tail=`<span class="ko-score">${g}${hasPens?`<span class="ko-pen-row">(${pn})</span>`:''}</span>`;
+    }
+    const inner=t
+      ? `<span class="flag">${flag(t.code)}</span><span class="code">${t.code}</span><span class="r32-name">${t.name}</span>${tail}`
+      : `<span class="r32-placeholder">${slotLabel(slot)}</span>`;
+    return `<div class="${cls}">${inner}</div>`;
+  };
+
+  // Finalizado: solo los dos módulos de equipo (goles + penales), ganador resaltado, sin módulo central
+  if(hasScore){
+    return `<div class="r32-card ko-card ko-card--done">
+      ${teamRow(teamA,def.a,confA,'A')}
+      ${teamRow(teamB,def.b,confB,'B')}
     </div>`;
   }
 
-  const rowA=teamA
-    ?`<span class="flag">${flag(teamA.code)}</span><span class="code">${teamA.code}</span><span class="r32-name">${teamA.name}</span><span class="r32-pts">${teamA.Pts}pts</span>`
-    :`<span class="r32-placeholder">${slotLabel(match.a)}</span>`;
-  const rowB=teamB
-    ?`<span class="flag">${flag(teamB.code)}</span><span class="code">${teamB.code}</span><span class="r32-name">${teamB.name}</span><span class="r32-pts">${teamB.Pts}pts</span>`
-    :`<span class="r32-placeholder">${slotLabel(match.b)}</span>`;
+  let center;
+  if(!both){
+    center=`<div class="ko-center"><span class="r32-vs">vs</span></div>`;
+  } else {
+    const pH=Math.round(mo.pH*100),pD=Math.round(mo.pD*100),pA=Math.round(mo.pA*100);
+    const bar=`<div class="probbar"><i class="h" style="width:${mo.pH*100}%"></i><i class="d" style="width:${mo.pD*100}%"></i><i class="a" style="width:${mo.pA*100}%"></i></div>
+      <div class="problbl"><span class="h">${pH}%</span><span class="d">${pD}%E</span><span class="a">${pA}%</span></div>`;
+    let pred;
+    if(m.predConfirmed){
+      pred=`<div class="ko-pred-saved"><span class="ko-pred-val">${m.predA}–${m.predB}</span><span class="pred-edit" data-ko-edit="${id}">Editar</span></div>`;
+    } else {
+      const ambos=m.predA!==''&&m.predB!=='';
+      pred=`<div class="ko-pred">
+        <input class="sc" data-pred="${id}:A" value="${m.predA}" inputmode="numeric"><span class="dash">–</span><input class="sc" data-pred="${id}:B" value="${m.predB}" inputmode="numeric">
+      </div>
+      <button class="pred-save-btn ko-save-btn" data-ko-confirm="${id}"${ambos?'':' disabled'}>Guardar pronóstico</button>`;
+    }
+    center=`<div class="ko-center">${bar}${pred}</div>`;
+  }
 
-  return `<div class="r32-card">
-    <div class="r32-team${!confirmedA?' r32-ghost':''}">${rowA}</div>
-    ${centerHTML}
-    <div class="r32-team r32-team--b${!confirmedB?' r32-ghost':''}">${rowB}</div>
+  return `<div class="r32-card ko-card${disagree?' disagree':''}">
+    ${teamRow(teamA,def.a,confA,'A')}
+    ${center}
+    ${teamRow(teamB,def.b,confB,'B')}
   </div>`;
 }
 
 function renderBracket(){
   const root=document.getElementById('view-llaves');
-  const best8=getBest8Thirds();
-  const matchMap=Object.fromEntries(R32_BRACKET.map(m=>[m.id,m]));
 
-  let html='';
-  BRACKET_SECTIONS.forEach(sec=>{
-    html+=`<div class="bracket-section">
-      <h2 class="bracket-section-head">${sec.label}</h2>
-      <div class="bracket-wrap">`;
-    sec.ids.forEach(id=>{ html+=bracketMatchHTML(matchMap[id]); });
-    html+=`</div></div>`;
+  let cols='';
+  KO_ROUNDS.forEach((round,ri)=>{
+    const isLast=ri===KO_ROUNDS.length-1, isFirst=ri===0;
+    let body='';
+    if(isLast){
+      round.ids.forEach(mid=>{ body+=`<div class="ko-match">${koMatchHTML(KO_BY_ID[mid])}</div>`; });
+    } else {
+      for(let i=0;i<round.ids.length;i+=2){
+        body+=`<div class="ko-pair">
+          <div class="ko-match">${koMatchHTML(KO_BY_ID[round.ids[i]])}</div>
+          <div class="ko-match">${koMatchHTML(KO_BY_ID[round.ids[i+1]])}</div>
+        </div>`;
+      }
+    }
+    cols+=`<div class="ko-col${isFirst?' ko-col--first':''}${isLast?' ko-col--last':''}">
+      <div class="ko-col-head">${round.label}</div>
+      <div class="ko-col-body">${body}</div>
+    </div>`;
   });
 
-  html+=`<div class="panel">
-    <h3>Mejores terceros</h3>
-    ${thirds8TableHTML(best8)}
-  </div>`;
+  root.innerHTML=`
+    <div class="ko-tree">${cols}</div>
+    <div class="ko-third">
+      <div class="ko-col-head">3.º puesto</div>
+      <div class="ko-match">${koMatchHTML(KO_THIRD)}</div>
+    </div>`;
+  bindBracketInputs();
+}
 
-  root.innerHTML=html;
+function bindBracketInputs(){
+  document.querySelectorAll('#view-llaves [data-pred]').forEach(inp=>{
+    inp.addEventListener('input',e=>{
+      const [id,side]=e.target.dataset.pred.split(/:(?=[AB]$)/);
+      const v=clean(e.target.value);
+      STATE.matches[id]["pred"+side]=v; e.target.value=v;
+      STATE.matches[id].predConfirmed=false;
+      const m=STATE.matches[id];
+      const btn=document.querySelector(`[data-ko-confirm="${id}"]`);
+      if(btn) btn.disabled=(m.predA===''||m.predB==='');
+      save();
+    });
+  });
+  document.querySelectorAll('[data-ko-confirm]').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      const id=e.currentTarget.dataset.koConfirm, m=STATE.matches[id];
+      if(m.predA===''||m.predB==='') return;
+      m.predConfirmed=true; renderBracket(); save();
+    });
+  });
+  document.querySelectorAll('[data-ko-edit]').forEach(el=>{
+    el.addEventListener('click',e=>{
+      STATE.matches[e.currentTarget.dataset.koEdit].predConfirmed=false;
+      renderBracket(); save();
+    });
+  });
 }
 
 function refreshLlavesIfOpen(){
@@ -1323,6 +1511,20 @@ function tally(){
       if(yo){ youScored++; if(yo===oc){youHit++; if(+m.predA===+m.actA&&+m.predB===+m.actB) youExact++;} }
     });
   }
+  // Eliminatorias (marcador tras prórroga, sin penales)
+  KO_ALL.forEach(def=>{
+    const m=koRec(def.id);
+    const oc=outcome(m.actA,m.actB); if(!oc) return;
+    const {teamA,teamB}=resolveKOTeams(def); if(!teamA||!teamB) return;
+    played++;
+    const mo=model(teamA.code,teamB.code,'N',false);
+    const pick=modelPick(mo);
+    if(pick===oc) modHit++;
+    const oH=oc==="H"?1:0,oD=oc==="D"?1:0,oA=oc==="A"?1:0;
+    brierSum+=(mo.pH-oH)**2+(mo.pD-oD)**2+(mo.pA-oA)**2; brierN++;
+    const yo=outcome(m.predA,m.predB);
+    if(yo){ youScored++; if(yo===oc){youHit++; if(+m.predA===+m.actA&&+m.predB===+m.actB) youExact++;} }
+  });
   return {played,youHit,youExact,modHit,brier:brierN?brierSum/brierN:null,youScored};
 }
 
@@ -1394,7 +1596,7 @@ function renderDash(){
   root.innerHTML=`
     ${bannerHTML()}
     <div class="cards">
-      <div class="card"><div class="k">Partidos cargados</div><div class="v">${t.played}<small> / 72</small></div><div class="note">fase de grupos</div></div>
+      <div class="card"><div class="k">Partidos cargados</div><div class="v">${t.played}<small> / 104</small></div><div class="note">grupos + llaves</div></div>
       <div class="card"><div class="k vs-you">Aciertos tuyos</div><div class="v">${youPct==null?'—':youPct+'<small>%</small>'}</div><div class="note">${t.youHit}/${t.youScored} · ${t.youExact} exactos</div></div>
       <div class="card"><div class="k vs-mod">Aciertos del modelo</div><div class="v">${modPct==null?'—':modPct+'<small>%</small>'}</div><div class="note">${t.modHit}/${t.played} (1X2)</div></div>
       <div class="card"><div class="k">Brier del modelo</div><div class="v">${t.brier==null?'—':t.brier.toFixed(3)}</div><div class="note">0 perfecto · ~0.67 azar</div></div>
@@ -1427,6 +1629,27 @@ function ledgerHTML(){
       </tr>`;
     });
   }
+  // Eliminatorias
+  KO_ALL.forEach(def=>{
+    const m=koRec(def.id);
+    const oc=outcome(m.actA,m.actB); if(!oc) return;
+    const {teamA,teamB}=resolveKOTeams(def); if(!teamA||!teamB) return;
+    const mo=model(teamA.code,teamB.code,'N',false);
+    const pick=modelPick(mo), top=mo.top[0];
+    const yo=outcome(m.predA,m.predB);
+    const youHit=yo&&yo===oc, modHit=pick===oc;
+    const youTxt=(m.predA===""||m.predB==="")?'—':`${m.predA}-${m.predB}`;
+    const rl=def.id<=88?'R16':def.id<=96?'R8':def.id<=100?'QF':def.id<=102?'SF':def.id===103?'3.º':'Final';
+    const pens=(m.penA!=null&&m.penB!=null)?` (${m.penA}-${m.penB})`:'';
+    rows+=`<tr>
+      <td>${rl}</td>
+      <td>${flag(teamA.code)} ${teamA.code} <span style="color:var(--faint)">vs</span> ${flag(teamB.code)} ${teamB.code}</td>
+      <td class="res">${m.actA}-${m.actB}${pens}</td>
+      <td>${youTxt} ${yo?`<span class="pill ${youHit?'ok':'no'}">${youHit?'✓':'✗'}</span>`:''}</td>
+      <td>${top.i}-${top.j} <span class="pill ${modHit?'ok':'no'}">${modHit?'✓':'✗'}</span></td>
+      <td style="color:var(--muted)">${Math.round(Math.max(mo.pH,mo.pD,mo.pA)*100)}%</td>
+    </tr>`;
+  });
   if(!rows) rows=`<tr><td colspan="6" style="color:var(--faint);padding:16px 8px">Aún no cargaste resultados reales. Ingresalos en la pestaña Grupos.</td></tr>`;
   return `<div class="table-scroll"><table class="ledger"><thead><tr>
     <th>Gr</th><th>Partido</th><th>Real</th><th>Tu pron.</th><th>Modelo</th><th>Confianza</th>
@@ -1754,6 +1977,9 @@ function applyCloudState(cloud){
         kickoff: cur.kickoff ?? merged[id].kickoff,
         actA:    cur.actA    ?? merged[id].actA,
         actB:    cur.actB    ?? merged[id].actB,
+        advance: cur.advance ?? merged[id].advance,
+        penA:    cur.penA    ?? merged[id].penA,
+        penB:    cur.penB    ?? merged[id].penB,
       };
     }
   }
@@ -1826,6 +2052,14 @@ async function fetchLiveResults(){
       TEAMS[g].forEach((t,i)=>{ codeIndex[t[1]]={group:g,pos:i}; });
     }
 
+    // Índice de cruces eliminatorios con ambos equipos ya resueltos → clave por par de códigos
+    const koKey=(x,y)=>[x,y].sort().join('|');
+    const koIndex={};
+    KO_ALL.forEach(def=>{
+      const {teamA,teamB}=resolveKOTeams(def);
+      if(teamA&&teamB) koIndex[koKey(teamA.code,teamB.code)]={id:"KO:"+def.id,aCode:teamA.code};
+    });
+
     let changed=false;
     for(const match of (json.matches||[])){
       let codeH=match.homeTeam?.tla;
@@ -1833,38 +2067,60 @@ async function fetchLiveResults(){
       if(TLA_MAP[codeH]) codeH=TLA_MAP[codeH];
       if(TLA_MAP[codeA]) codeA=TLA_MAP[codeA];
 
-      const infoH=codeIndex[codeH], infoA=codeIndex[codeA];
-      if(!infoH||!infoA||infoH.group!==infoA.group) continue;
-
-      const g=infoH.group;
-      const pi=PAIRINGS.findIndex(pr=>
-        (pr[0]===infoH.pos&&pr[1]===infoA.pos)||
-        (pr[0]===infoA.pos&&pr[1]===infoH.pos)
-      );
-      if(pi<0) continue;
-
-      const id=matchId(g,pi);
-      const m=STATE.matches[id];
-      if(!m) continue;
-
-      // Actualizar status, minuto y kickoff siempre
       const newStatus=match.status||null;
       const newMinute=match.minute||null;
       const newKickoff=match.utcDate?new Date(match.utcDate).getTime():null;
+
+      const infoH=codeIndex[codeH], infoA=codeIndex[codeA];
+      const sameGroup=infoH&&infoA&&infoH.group===infoA.group;
+
+      if(sameGroup){
+        // ── Partido de grupos ──
+        const g=infoH.group;
+        const pi=PAIRINGS.findIndex(pr=>
+          (pr[0]===infoH.pos&&pr[1]===infoA.pos)||
+          (pr[0]===infoA.pos&&pr[1]===infoH.pos)
+        );
+        if(pi<0) continue;
+        const m=STATE.matches[matchId(g,pi)];
+        if(!m) continue;
+        if(m.status!==newStatus||m.minute!==newMinute||m.kickoff!==newKickoff){
+          m.status=newStatus; m.minute=newMinute; m.kickoff=newKickoff; changed=true;
+        }
+        if(match.status==="FINISHED"){
+          const goalsH=match.score?.fullTime?.home, goalsA=match.score?.fullTime?.away;
+          if(goalsH!=null&&goalsA!=null){
+            const a=PAIRINGS[pi][0]===infoH.pos, newActA=a?goalsH:goalsA, newActB=a?goalsA:goalsH;
+            if(m.actA!==newActA||m.actB!==newActB){ m.actA=newActA; m.actB=newActB; changed=true; }
+          }
+        }
+        continue;
+      }
+
+      // ── Cruce eliminatorio (equipos de grupos distintos) ──
+      const ko=koIndex[koKey(codeH,codeA)];
+      if(!ko) continue;
+      const m=STATE.matches[ko.id];
+      if(!m) continue;
       if(m.status!==newStatus||m.minute!==newMinute||m.kickoff!==newKickoff){
         m.status=newStatus; m.minute=newMinute; m.kickoff=newKickoff; changed=true;
       }
-
-      // Actualizar resultado solo en partidos finalizados
       if(match.status==="FINISHED"){
-        const goalsH=match.score?.fullTime?.home;
-        const goalsA=match.score?.fullTime?.away;
+        const goalsH=match.score?.fullTime?.home, goalsA=match.score?.fullTime?.away;
         if(goalsH!=null&&goalsA!=null){
-          let newActA,newActB;
-          if(PAIRINGS[pi][0]===infoH.pos){ newActA=goalsH; newActB=goalsA; }
-          else { newActA=goalsA; newActB=goalsH; }
-          if(m.actA!==newActA||m.actB!==newActB){
-            m.actA=newActA; m.actB=newActB; changed=true;
+          const homeIsA=(codeH===ko.aCode);
+          // fullTime = marcador tras prórroga, sin penales (lo que se pronostica)
+          const newActA=homeIsA?goalsH:goalsA, newActB=homeIsA?goalsA:goalsH;
+          const w=match.score?.winner;
+          let newAdv=null;
+          if(w==='HOME_TEAM') newAdv=homeIsA?'A':'B';
+          else if(w==='AWAY_TEAM') newAdv=homeIsA?'B':'A';
+          // Penales (si los hubo) → se muestran entre paréntesis
+          const penH=match.score?.penalties?.home, penA_=match.score?.penalties?.away;
+          const newPenA=penH!=null?(homeIsA?penH:penA_):null;
+          const newPenB=penH!=null?(homeIsA?penA_:penH):null;
+          if(m.actA!==newActA||m.actB!==newActB||m.advance!==newAdv||m.penA!==newPenA||m.penB!==newPenB){
+            m.actA=newActA; m.actB=newActB; m.advance=newAdv; m.penA=newPenA; m.penB=newPenB; changed=true;
           }
         }
       }
